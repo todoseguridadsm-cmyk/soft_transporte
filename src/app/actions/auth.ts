@@ -13,7 +13,7 @@ export async function login(data: { email: string; password: string }) {
   if (loginEmail.toLowerCase() === 'transporte2026') {
     loginEmail = 'transporte2026@admin.com';
   } else if (!loginEmail.includes('@')) {
-    loginEmail = `${loginEmail}@sendacmr.com`;
+    loginEmail = `${loginEmail.toLowerCase()}@sendacmr.com`;
   }
 
   const { error } = await supabase.auth.signInWithPassword({
