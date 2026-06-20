@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Truck, AlertTriangle, Receipt, Navigation, MapPin, Calendar, Clock } from 'lucide-react'
+import { Truck, AlertTriangle, Receipt, Navigation, MapPin, Calendar, Clock, Home } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 
