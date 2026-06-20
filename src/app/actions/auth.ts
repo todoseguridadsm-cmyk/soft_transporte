@@ -9,11 +9,26 @@ export async function login(data: { email: string; password: string }) {
 
   // Si ingresan "Transporte2026", lo transformamos internamente al correo que está en la base de datos
   // Si ingresan cualquier otro usuario sin @, le agregamos @sendacmr.com
-  let loginEmail = data.email.trim();
-  if (loginEmail.toLowerCase() === 'transporte2026') {
+  let loginInput = data.email.trim();
+  let loginEmail = loginInput;
+
+  const isUsernameLogin = !loginInput.includes('@') && loginInput !== 'transporte2026';
+
+  if (isUsernameLogin) {
+    // Verificación ESTRICTA de mayúsculas/minúsculas consultando el perfil real
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', loginInput)
+      .single();
+
+    if (!profile) {
+      return { error: 'Credenciales inválidas. Por favor, respete exactamente las mayúsculas y minúsculas de su usuario.' }
+    }
+
+    loginEmail = `${loginInput}@sendacmr.com`;
+  } else if (loginInput === 'transporte2026') {
     loginEmail = 'transporte2026@admin.com';
-  } else if (!loginEmail.includes('@')) {
-    loginEmail = `${loginEmail.toLowerCase()}@sendacmr.com`;
   }
 
   const { error } = await supabase.auth.signInWithPassword({

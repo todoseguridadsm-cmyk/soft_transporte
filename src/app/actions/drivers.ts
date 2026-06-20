@@ -30,8 +30,8 @@ export async function addDriver(formData: FormData) {
     return { error: 'Nombre, Usuario y Contraseña son requeridos.' }
   }
 
-  // Generar un email si no lo proveen (usando el usuario)
-  const email = emailRaw ? emailRaw : `${username.replace(/\s+/g, '').toLowerCase()}@sendacmr.com`
+  // Generar un email interno si no lo proveen (usando el usuario tal cual)
+  const email = emailRaw ? emailRaw : `${username.replace(/\s+/g, '')}@sendacmr.com`
 
   // 1. Create auth user
   const { data: userData, error: authError } = await adminSupabase.auth.admin.createUser({
