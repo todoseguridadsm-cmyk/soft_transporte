@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Truck, AlertTriangle, Receipt, Navigation, MapPin, Calendar, Clock, Home } from 'lucide-react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { FinishTripButton } from '@/components/trips/FinishTripButton'
 
 export async function DriverDashboardView({ userId, fullName }: { userId: string, fullName: string }) {
   const supabase = await createClient()
@@ -11,7 +11,7 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
     .from('trips')
     .select(`
       id, origin, destination, departure_date, status, 
-      vehicles!trips_vehicle_id_fkey(plate, next_service_km, current_km)
+      vehicles(plate, next_service_km, current_km)
     `)
     .eq('driver_id', userId)
     .in('status', ['pending', 'in_progress'])
@@ -113,6 +113,13 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
                   <span>{new Date(currentTrip.departure_date).toLocaleDateString('es-AR')}</span>
                 </div>
               </div>
+
+              {/* Botón Finalizar Viaje */}
+              {(currentTrip.status === 'in_progress' || currentTrip.status === 'pending') && (
+                <div className="relative z-10">
+                  <FinishTripButton tripId={currentTrip.id} />
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (

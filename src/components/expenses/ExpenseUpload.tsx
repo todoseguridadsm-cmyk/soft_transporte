@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, UploadCloud, CheckCircle, AlertCircle, ReceiptText, PenTool } from 'lucide-react'
+import { Loader2, UploadCloud, CheckCircle, AlertCircle, ReceiptText, PenTool, Camera, ImagePlus } from 'lucide-react'
 
 const CATEGORIES = [
   'Combustible',
@@ -165,15 +165,54 @@ export function ExpenseUpload() {
           </div>
         ) : (
           <div className="space-y-3">
-            <Label htmlFor="receipt" className="text-foreground/80 font-semibold">Seleccionar Imagen <span className="text-destructive">*</span></Label>
+            <Label className="text-foreground/80 font-semibold">Imagen del Ticket <span className="text-destructive">*</span></Label>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="h-14 bg-background/50 border-border/50 hover:bg-primary/10 hover:text-primary transition-colors flex flex-col items-center justify-center gap-1"
+                disabled={status === 'uploading' || status === 'analyzing'}
+                onClick={() => document.getElementById('receipt-upload')?.click()}
+              >
+                <ImagePlus className="h-5 w-5" />
+                <span className="text-xs font-semibold">Galería</span>
+              </Button>
+              
+              <Button 
+                type="button" 
+                className="h-14 bg-primary/20 text-primary hover:bg-primary/30 border-none transition-colors flex flex-col items-center justify-center gap-1"
+                disabled={status === 'uploading' || status === 'analyzing'}
+                onClick={() => document.getElementById('receipt-camera')?.click()}
+              >
+                <Camera className="h-5 w-5" />
+                <span className="text-xs font-semibold">Cámara</span>
+              </Button>
+            </div>
+
+            {/* Inputs ocultos */}
             <Input 
-              id="receipt" 
+              id="receipt-upload" 
               type="file" 
               accept="image/*" 
               onChange={handleFileChange}
-              className="file:text-primary file:font-bold file:bg-primary/10 file:border-0 hover:file:bg-primary/20 file:mr-4 file:px-4 file:py-2 h-14 cursor-pointer bg-background/50 border-border/50 transition-colors pt-[10px]"
-              disabled={status === 'uploading' || status === 'analyzing'}
+              className="hidden"
             />
+            <Input 
+              id="receipt-camera" 
+              type="file" 
+              accept="image/*" 
+              capture="environment"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {file && (
+              <div className="mt-2 text-center p-2 bg-primary/5 rounded-lg border border-primary/10">
+                <span className="text-xs font-medium text-primary">Archivo seleccionado: </span>
+                <span className="text-xs text-muted-foreground truncate block max-w-full">{file.name}</span>
+              </div>
+            )}
           </div>
         )}
 
