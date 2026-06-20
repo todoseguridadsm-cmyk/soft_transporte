@@ -31,8 +31,7 @@ export function SidebarNav({ isAdmin, permissions }: { isAdmin: boolean, permiss
 
   // Group links by their 'group' property
   const groupedLinks = links.reduce((acc, link) => {
-    // Show all links for now so the user can access them
-    // if (link.id !== 'home' && !hasAccess(link.id)) return acc
+    if (link.id !== 'home' && !hasAccess(link.id)) return acc
     if (!acc[link.group]) acc[link.group] = []
     acc[link.group].push(link)
     return acc

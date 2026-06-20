@@ -10,11 +10,15 @@ import { createUser } from '@/app/actions/users'
 
 const PERMISSIONS = [
   { id: 'trips', label: 'Viajes' },
-  { id: 'expenses', label: 'Gastos y OCR' },
+  { id: 'expenses', label: 'Carga de Tickets' },
+  { id: 'sales', label: 'Ventas y Cobros' },
+  { id: 'company_expenses', label: 'Egresos y Sueldos' },
+  { id: 'checks', label: 'Cartera de Cheques' },
   { id: 'clients', label: 'Clientes' },
+  { id: 'suppliers', label: 'Proveedores' },
   { id: 'drivers', label: 'Choferes' },
   { id: 'vehicles', label: 'Flota' },
-  { id: 'invoices', label: 'Facturación' },
+  { id: 'alerts', label: 'Alertas' },
 ]
 
 export function UserForm() {
