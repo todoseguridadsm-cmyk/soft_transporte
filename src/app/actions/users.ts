@@ -9,11 +9,18 @@ export async function createUser(formData: FormData) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const email = formData.get('email') as string
+  const emailRaw = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = formData.get('full_name') as string
   const role = formData.get('role') as 'admin' | 'empleado'
   const permissionsJson = formData.get('permissions') as string
+
+  let email = emailRaw.trim()
+  let username = null
+  if (!email.includes('@')) {
+    username = email
+    email = `${email.replace(/\s+/g, '')}@sendacmr.com`
+  }
 
   let permissions = []
   try {
@@ -38,7 +45,8 @@ export async function createUser(formData: FormData) {
     .update({ 
       full_name: fullName, 
       role, 
-      permissions: role === 'empleado' ? permissions : null
+      permissions: role === 'empleado' ? permissions : null,
+      username: username
     })
     .eq('id', authData.user.id)
 

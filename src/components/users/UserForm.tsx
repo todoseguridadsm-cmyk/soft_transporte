@@ -66,7 +66,7 @@ export function UserForm() {
           <UserCog className="h-4 w-4" /> Registrar Usuario
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-xl border-border/40 shadow-2xl">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/40 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <Shield className="h-5 w-5 text-primary" /> 
