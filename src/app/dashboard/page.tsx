@@ -13,9 +13,19 @@ import Link from 'next/link'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { RouteChart } from '@/components/dashboard/RouteChart'
 import { OcrFeed } from '@/components/dashboard/OcrFeed'
+import { DriverDashboardView } from '@/components/dashboard/DriverDashboardView'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
+
+  // Verify Role
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
+    if (profile?.role === 'chofer') {
+      return <DriverDashboardView userId={user.id} fullName={profile.full_name || 'Chofer'} />
+    }
+  }
 
   // --- 1. Fetching Data for KPIs ---
   const { data: allTrips } = await supabase.from('trips').select('id, origin, destination, price, status')

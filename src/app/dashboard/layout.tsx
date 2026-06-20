@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SessionTimeout } from '@/components/SessionTimeout'
 
 import { SidebarNav } from '@/components/SidebarNav'
+import { MobileBottomNav } from '@/components/MobileBottomNav'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
@@ -24,6 +25,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   const isAdmin = role === 'admin'
+  const isChofer = role === 'chofer'
+
+  // Si es chofer, renderizamos un layout puramente móvil y oscuro
+  if (isChofer) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-white">
+        <SessionTimeout />
+        <main className="p-4 md:p-6 pb-24 md:pb-6 min-h-screen">
+          {children}
+        </main>
+        {/* Usamos un prop vacío por defecto, pero la idea es que DriverDashboardView le pase el hasAlerts si quiere */}
+        <MobileBottomNav />
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
