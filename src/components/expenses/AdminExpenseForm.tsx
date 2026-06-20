@@ -24,7 +24,7 @@ export function AdminExpenseForm({ drivers, trips }: { drivers: any[], trips: an
   const [amount, setAmount] = useState('')
   const [provider, setProvider] = useState('')
 
-  const availableTrips = trips.filter(t => t.driver_id === driverId && t.status === 'in_progress')
+  const availableTrips = trips.filter(t => t.driver_id === driverId)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,10 +92,10 @@ export function AdminExpenseForm({ drivers, trips }: { drivers: any[], trips: an
             </div>
 
             <div className="space-y-2">
-              <Label>Viaje En Curso <span className="text-destructive">*</span></Label>
+              <Label>Viaje Asociado <span className="text-destructive">*</span></Label>
               <Select value={tripId} onValueChange={setTripId} disabled={!driverId || availableTrips.length === 0}>
                 <SelectTrigger className="bg-background/50">
-                  <SelectValue placeholder={!driverId ? "Selecciona un chofer primero" : availableTrips.length === 0 ? "No hay viajes en curso" : "Seleccionar viaje..."} />
+                  <SelectValue placeholder={!driverId ? "Selecciona un chofer primero" : availableTrips.length === 0 ? "No hay viajes" : "Seleccionar viaje..."} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableTrips.map(t => (

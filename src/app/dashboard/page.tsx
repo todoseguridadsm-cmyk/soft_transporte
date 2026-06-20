@@ -12,8 +12,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { RouteChart } from '@/components/dashboard/RouteChart'
-import { OcrFeed } from '@/components/dashboard/OcrFeed'
 import { DriverDashboardView } from '@/components/dashboard/DriverDashboardView'
+import { CheckCircle } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -89,11 +89,11 @@ export default async function DashboardPage() {
      ]
   }
 
-  // --- 3. Feed OCR ---
-  const { data: pendingExpenses } = await supabase
-    .from('expenses')
-    .select('id, description, amount, profiles!expenses_driver_id_fkey(full_name)')
-    .eq('status', 'pending')
+  // --- 3. Viajes a Confirmar ---
+  const { data: pendingAuditTrips } = await supabase
+    .from('trips')
+    .select('id, trip_code, origin, destination, profiles!trips_driver_id_fkey(full_name)')
+    .eq('status', 'pending_audit')
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -173,10 +173,38 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Recharts Gráficos y Feed OCR */}
+      {/* Recharts Gráficos y Viajes a Confirmar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <RevenueChart data={revenueData} />
-        <OcrFeed pendingExpenses={pendingExpenses || []} />
+        <div className="lg:col-span-2">
+          <RevenueChart data={revenueData} />
+        </div>
+        <Card className="bg-card/40 backdrop-blur-xl border-border/40 shadow-xl">
+          <CardHeader className="bg-muted/10 border-b border-border/40 pb-3">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-amber-500" />
+              Viajes a Confirmar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/40">
+              {pendingAuditTrips && pendingAuditTrips.length > 0 ? (
+                pendingAuditTrips.map((trip: any) => (
+                  <div key={trip.id} className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between">
+                     <div className="space-y-1">
+                       <p className="text-sm font-bold font-mono text-primary/80">{trip.trip_code || 'S/C'}</p>
+                       <p className="text-xs text-muted-foreground">{trip.profiles?.full_name}</p>
+                     </div>
+                     <Link href="/dashboard/trips">
+                       <Button variant="outline" size="sm" className="h-7 text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10">Auditar</Button>
+                     </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-sm text-muted-foreground">No hay viajes pendientes de confirmación.</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       {/* Gráfico Inferior y Tabla de Flota */}

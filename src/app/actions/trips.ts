@@ -22,11 +22,11 @@ export async function createTrip(formData: FormData) {
     return { error: 'Origen, Destino y Kilómetros son obligatorios.' }
   }
 
-  // Generar código de viaje (ej. VJ-240614-A3B9)
+  // Generar código secuencial SVT-XXXX
   const date = new Date()
-  const datePart = date.toISOString().slice(2, 10).replace(/-/g, '')
-  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase()
-  const trip_code = `VJ-${datePart}-${randomPart}`
+  const { count } = await supabase.from('trips').select('*', { count: 'exact', head: true })
+  const nextNumber = (count || 0) + 1
+  const trip_code = `SVT-${nextNumber.toString().padStart(4, '0')}`
 
   const advance_payment = advancePaymentStr ? parseFloat(advancePaymentStr) : 0
 
@@ -103,10 +103,10 @@ export async function completeTrip(tripId: string) {
   if (tripError || !trip) return { error: 'Viaje no encontrado.' }
   if (trip.status === 'completed') return { error: 'El viaje ya está completado.' }
 
-  // 2. Update trip status
+  // 2. Update trip status to pending_audit
   const { error: updateError } = await supabase
     .from('trips')
-    .update({ status: 'completed', end_date: new Date().toISOString() })
+    .update({ status: 'pending_audit', end_date: new Date().toISOString() })
     .eq('id', tripId)
 
   if (updateError) return { error: 'Error al actualizar el viaje.' }
@@ -131,6 +131,36 @@ export async function completeTrip(tripId: string) {
   revalidatePath('/dashboard/trips')
   revalidatePath('/dashboard/vehicles')
   revalidatePath('/dashboard/alerts')
+  return { success: true }
+}
+
+export async function approveAndCompleteTrip(tripId: string) {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  // 1. Get the trip info
+  const { data: trip, error: tripError } = await supabase
+    .from('trips')
+    .select('status')
+    .eq('id', tripId)
+    .single()
+
+  if (tripError || !trip) return { error: 'Viaje no encontrado.' }
+  if (trip.status === 'completed') return { error: 'El viaje ya está completado.' }
+
+  // 2. Check if all expenses are approved? For now we trust the secretary clicked the button
+  // 3. Update trip status to completed
+  const { error: updateError } = await supabase
+    .from('trips')
+    .update({ status: 'completed' })
+    .eq('id', tripId)
+
+  if (updateError) return { error: 'Error al finalizar el viaje.' }
+
+  revalidatePath('/dashboard/trips')
+  revalidatePath('/dashboard/expenses')
   return { success: true }
 }
 

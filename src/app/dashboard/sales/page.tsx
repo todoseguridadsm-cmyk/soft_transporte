@@ -5,10 +5,13 @@ import { Receipt, Banknote, Download } from 'lucide-react'
 import { SaleForm } from '@/components/sales/SaleForm'
 import { Button } from '@/components/ui/button'
 
-export default async function SalesPage() {
+export default async function SalesPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams;
+  const filterClient = searchParams.client_id as string || ''
+
   const supabase = await createClient()
 
-  const { data: sales } = await supabase
+  let query = supabase
     .from('sales')
     .select(`
       *,
@@ -16,6 +19,12 @@ export default async function SalesPage() {
       trips ( trip_code, origin, destination )
     `)
     .order('created_at', { ascending: false })
+
+  if (filterClient) {
+    query = query.eq('client_id', filterClient)
+  }
+
+  const { data: sales } = await query
 
   const { data: clients } = await supabase.from('clients').select('id, company_name')
   const { data: trips } = await supabase.from('trips').select('id, trip_code, client_id, origin, destination')
@@ -29,6 +38,19 @@ export default async function SalesPage() {
         </div>
         <SaleForm clients={clients || []} trips={trips || []} />
       </div>
+
+      <Card className="bg-card/40 backdrop-blur-xl border-border/40 p-4 flex flex-wrap gap-4 items-end">
+        <div className="space-y-1 w-full sm:w-auto">
+          <label className="text-xs font-bold text-muted-foreground uppercase">Filtrar por Cliente</label>
+          <form action="/dashboard/sales" className="flex gap-2">
+            <select name="client_id" defaultValue={filterClient} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:w-64">
+              <option value="">Todos los clientes</option>
+              {clients?.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+            </select>
+            <Button type="submit" variant="secondary" size="sm" className="h-9">Filtrar</Button>
+          </form>
+        </div>
+      </Card>
 
       <Card className="bg-card/40 backdrop-blur-xl border-border/40 shadow-xl overflow-hidden">
         <CardHeader className="border-b border-border/40 bg-muted/20">

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Truck, Receipt, Bell, LogOut } from 'lucide-react'
+import { Home, Truck, Receipt, Bell, LogOut, Wallet } from 'lucide-react'
 import { logout } from '@/app/actions/auth'
 
 export function MobileBottomNav({ hasAlerts }: { hasAlerts?: boolean }) {
@@ -12,6 +12,7 @@ export function MobileBottomNav({ hasAlerts }: { hasAlerts?: boolean }) {
     { href: '/dashboard', icon: Home, label: 'Inicio' },
     { href: '/dashboard/trips', icon: Truck, label: 'Viajes' },
     { href: '/dashboard/expenses', icon: Receipt, label: 'Tickets' },
+    { href: '/dashboard/wallet', icon: Wallet, label: 'Caja' },
   ]
 
   return (

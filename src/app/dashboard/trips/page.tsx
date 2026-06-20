@@ -6,7 +6,11 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { DeleteTripButton } from '@/components/trips/DeleteTripButton'
 
-export default async function TripsPage() {
+export default async function TripsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams;
+  const filterStatus = searchParams.status as string || 'active'
+  const filterDriver = searchParams.driver_id as string || ''
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -17,8 +21,16 @@ export default async function TripsPage() {
   }
 
   const isChofer = role === 'chofer'
+  const isAdminOrEmp = role === 'admin' || role === 'empleado'
 
-  // Fetch recent trips
+  // Fetch drivers for filter
+  let drivers: any[] = []
+  if (isAdminOrEmp) {
+    const { data: dData } = await supabase.from('profiles').select('id, full_name').eq('role', 'chofer')
+    if (dData) drivers = dData
+  }
+
+  // Fetch trips
   let query = supabase
     .from('trips')
     .select(`
@@ -27,14 +39,27 @@ export default async function TripsPage() {
       destination,
       status,
       price,
+      trip_code,
+      advance_payment,
+      created_at,
       clients ( company_name ),
       vehicles ( plate ),
-      profiles!trips_driver_id_fkey ( full_name )
+      profiles!trips_driver_id_fkey ( full_name ),
+      expenses ( id, status )
     `)
     .order('created_at', { ascending: false })
 
   if (isChofer && user) {
     query = query.eq('driver_id', user.id)
+  } else {
+    if (filterStatus === 'active') {
+      query = query.in('status', ['in_progress', 'pending', 'pending_audit'])
+    } else if (filterStatus === 'completed') {
+      query = query.eq('status', 'completed')
+    }
+    if (filterDriver) {
+      query = query.eq('driver_id', filterDriver)
+    }
   }
 
   const { data: trips } = await query
@@ -67,6 +92,30 @@ export default async function TripsPage() {
           )}
         </div>
       </div>
+
+      {!isChofer && (
+        <Card className="bg-card/40 backdrop-blur-xl border-border/40 p-4 flex flex-wrap gap-4 items-end">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-muted-foreground uppercase">Estado</label>
+            <div className="flex bg-muted/30 rounded-lg p-1 border border-border/50">
+              <Link href="?status=active" className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${filterStatus === 'active' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}>Activos</Link>
+              <Link href="?status=completed" className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${filterStatus === 'completed' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}>Completados</Link>
+              <Link href="?status=all" className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${filterStatus === 'all' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}>Todos</Link>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-muted-foreground uppercase">Filtrar Chofer</label>
+            <form action="/dashboard/trips" className="flex gap-2">
+              <input type="hidden" name="status" value={filterStatus} />
+              <select name="driver_id" defaultValue={filterDriver} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm">
+                <option value="">Todos los choferes</option>
+                {drivers.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
+              </select>
+              <Button type="submit" variant="secondary" size="sm" className="h-9">Filtrar</Button>
+            </form>
+          </div>
+        </Card>
+      )}
 
       <Card className="bg-card/40 backdrop-blur-xl border-border/40 shadow-xl overflow-hidden">
         <CardHeader className="border-b border-border/40 bg-muted/20">
@@ -110,10 +159,11 @@ export default async function TripsPage() {
                     <TableCell>
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
                         trip.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        trip.status === 'pending_audit' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                         trip.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
                         'bg-muted text-muted-foreground border-border/50'
                       }`}>
-                        {trip.status === 'completed' ? 'Completado' : trip.status === 'in_progress' ? 'En Curso' : 'Pendiente'}
+                        {trip.status === 'completed' ? 'Completado' : trip.status === 'pending_audit' ? 'A Confirmar' : trip.status === 'in_progress' ? 'En Curso' : 'Pendiente'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-bold">
@@ -128,19 +178,42 @@ export default async function TripsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2 items-center">
-                        {trip.status === 'in_progress' && !isChofer && (
-                          <form action={async () => {
-                            'use server'
-                            const { completeTrip } = await import('@/app/actions/trips')
-                            await completeTrip(trip.id)
-                          }}>
-                            <Button variant="outline" size="sm" className="h-8 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10">
-                              Finalizar Viaje
-                            </Button>
-                          </form>
+                        {/* Audit / Confirm Trip */}
+                        {!isChofer && trip.status === 'pending_audit' && (
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                               const pendingTickets = (trip.expenses as any[])?.filter(e => e.status === 'pending').length || 0;
+                               const canClose = pendingTickets === 0;
+                               return canClose ? (
+                                 <form action={async () => {
+                                   'use server'
+                                   const { approveAndCompleteTrip } = await import('@/app/actions/trips')
+                                   await approveAndCompleteTrip(trip.id)
+                                 }}>
+                                   <Button variant="default" size="sm" className="h-8 bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold">
+                                     Cerrar Definitivo
+                                   </Button>
+                                 </form>
+                               ) : (
+                                 <div className="flex items-center gap-2">
+                                   <span className="text-xs text-destructive font-bold">{pendingTickets} Tickets sin auditar</span>
+                                   <Link href="/dashboard/expenses"><Button variant="outline" size="sm" className="h-8 text-xs">Auditar Tickets</Button></Link>
+                                 </div>
+                               )
+                            })()}
+                          </div>
                         )}
+
+                        {/* Force Close / Ver / Editar */}
                         {!isChofer && (
-                          <DeleteTripButton id={trip.id} />
+                          <div className="flex items-center gap-1 border-l border-border/50 pl-2 ml-2">
+                            <Link href={`/dashboard/trips/${trip.id}/edit`}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                              </Button>
+                            </Link>
+                            <DeleteTripButton id={trip.id} />
+                          </div>
                         )}
                       </div>
                     </TableCell>

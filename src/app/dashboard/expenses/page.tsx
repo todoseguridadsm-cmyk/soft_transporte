@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ExpenseUpload } from '@/components/expenses/ExpenseUpload'
 import { AdminExpenseForm } from '@/components/expenses/AdminExpenseForm'
+import { OcrFeed } from '@/components/dashboard/OcrFeed'
 
 export default async function ExpensesPage() {
   const supabase = await createClient()
@@ -26,8 +27,19 @@ export default async function ExpensesPage() {
     const { data: tripsData } = await supabase
       .from('trips')
       .select('id, trip_code, driver_id, status, origin, destination')
-      .eq('status', 'in_progress')
+      .in('status', ['in_progress', 'pending_audit', 'completed'])
+      .order('created_at', { ascending: false })
     if (tripsData) trips = tripsData
+  }
+
+  let pendingExpenses: any[] = []
+  if (isSecretaria) {
+    const { data: pExp } = await supabase
+      .from('expenses')
+      .select('id, description, amount, profiles!expenses_driver_id_fkey(full_name)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (pExp) pendingExpenses = pExp
   }
 
   return (
@@ -38,14 +50,21 @@ export default async function ExpensesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="flex flex-col items-center py-4">
-          <ExpenseUpload />
-        </div>
+        {!isSecretaria && (
+          <div className="flex flex-col items-center py-4">
+            <ExpenseUpload />
+          </div>
+        )}
 
         {isSecretaria && (
-          <div className="flex flex-col items-center py-4">
-            <AdminExpenseForm drivers={drivers} trips={trips} />
-          </div>
+          <>
+            <div className="flex flex-col py-4 w-full">
+              <AdminExpenseForm drivers={drivers} trips={trips} />
+            </div>
+            <div className="flex flex-col py-4 w-full">
+              <OcrFeed pendingExpenses={pendingExpenses} />
+            </div>
+          </>
         )}
       </div>
     </div>
