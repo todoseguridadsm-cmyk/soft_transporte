@@ -12,7 +12,7 @@ export async function login(data: { email: string; password: string }) {
   let loginInput = data.email.trim();
   let loginEmail = loginInput;
 
-  const isUsernameLogin = !loginInput.includes('@') && loginInput !== 'transporte2026';
+  const isUsernameLogin = !loginInput.includes('@') && loginInput.toLowerCase() !== 'transporte2026';
 
   if (isUsernameLogin) {
     // Verificación ESTRICTA de mayúsculas/minúsculas consultando el perfil real
@@ -27,7 +27,7 @@ export async function login(data: { email: string; password: string }) {
     }
 
     loginEmail = `${loginInput}@sendacmr.com`;
-  } else if (loginInput === 'transporte2026') {
+  } else if (loginInput.toLowerCase() === 'transporte2026') {
     loginEmail = 'transporte2026@admin.com';
   }
 
