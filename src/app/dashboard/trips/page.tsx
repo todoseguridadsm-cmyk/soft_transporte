@@ -53,7 +53,7 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
     query = query.eq('driver_id', user.id)
   } else {
     if (filterStatus === 'active') {
-      query = query.in('status', ['in_progress', 'pending', 'pending_audit'])
+      query = query.in('status', ['in_progress', 'pending'])
     } else if (filterStatus === 'completed') {
       query = query.eq('status', 'completed')
     }
@@ -159,11 +159,11 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
                     <TableCell>
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
                         trip.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                        trip.status === 'pending_audit' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                        trip.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                         trip.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
                         'bg-muted text-muted-foreground border-border/50'
                       }`}>
-                        {trip.status === 'completed' ? 'Completado' : trip.status === 'pending_audit' ? 'A Confirmar' : trip.status === 'in_progress' ? 'En Curso' : 'Pendiente'}
+                        {trip.status === 'completed' ? 'Completado' : trip.status === 'pending' ? 'A Confirmar' : trip.status === 'in_progress' ? 'En Curso' : 'Pendiente'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-bold">
@@ -179,7 +179,7 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2 items-center">
                         {/* Audit / Confirm Trip */}
-                        {!isChofer && trip.status === 'pending_audit' && (
+                        {!isChofer && trip.status === 'pending' && (
                           <div className="flex items-center gap-2">
                             {(() => {
                                const pendingTickets = (trip.expenses as any[])?.filter(e => e.status === 'pending').length || 0;

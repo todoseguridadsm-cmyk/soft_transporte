@@ -23,7 +23,7 @@ export default async function WalletPage() {
     )
   }
 
-  // Fetch the most relevant trip (in_progress or pending_audit, or most recent completed)
+  // Fetch the most relevant trip (in_progress or pending, or most recent completed)
   const { data: trips } = await supabase
     .from('trips')
     .select(`

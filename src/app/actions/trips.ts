@@ -103,10 +103,10 @@ export async function completeTrip(tripId: string) {
   if (tripError || !trip) return { error: 'Viaje no encontrado.' }
   if (trip.status === 'completed') return { error: 'El viaje ya está completado.' }
 
-  // 2. Update trip status to pending_audit
+  // 2. Update trip status to pending
   const { error: updateError } = await supabase
     .from('trips')
-    .update({ status: 'pending_audit', end_date: new Date().toISOString() })
+    .update({ status: 'pending', end_date: new Date().toISOString() })
     .eq('id', tripId)
 
   if (updateError) return { error: 'Error al actualizar el viaje.' }

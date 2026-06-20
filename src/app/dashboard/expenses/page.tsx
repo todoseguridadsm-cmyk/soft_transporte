@@ -27,7 +27,7 @@ export default async function ExpensesPage() {
     const { data: tripsData } = await supabase
       .from('trips')
       .select('id, trip_code, driver_id, status, origin, destination')
-      .in('status', ['in_progress', 'pending_audit', 'completed'])
+      .in('status', ['in_progress', 'pending', 'completed'])
       .order('created_at', { ascending: false })
     if (tripsData) trips = tripsData
   }

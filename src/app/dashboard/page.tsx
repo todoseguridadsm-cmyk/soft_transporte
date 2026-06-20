@@ -93,7 +93,7 @@ export default async function DashboardPage() {
   const { data: pendingAuditTrips } = await supabase
     .from('trips')
     .select('id, trip_code, origin, destination, profiles!trips_driver_id_fkey(full_name)')
-    .eq('status', 'pending_audit')
+    .eq('status', 'pending')
     .order('created_at', { ascending: false })
     .limit(5)
 
