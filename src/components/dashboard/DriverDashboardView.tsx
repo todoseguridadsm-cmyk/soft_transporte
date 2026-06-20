@@ -11,12 +11,12 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
   const { data: trips } = await supabase
     .from('trips')
     .select(`
-      id, origin, destination, departure_date, status, 
+      id, origin, destination, start_date, status, 
       vehicles(plate, next_service_km, current_km)
     `)
     .eq('driver_id', userId)
     .in('status', ['pending', 'in_progress'])
-    .order('departure_date', { ascending: true })
+    .order('start_date', { ascending: true })
     .limit(1)
   
   const currentTrip = trips && trips.length > 0 ? trips[0] : null
@@ -111,7 +111,7 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
               <div className="mt-5 pt-4 border-t border-gray-700/50 flex gap-4">
                 <div className="flex items-center gap-2 text-gray-400 text-xs">
                   <Calendar className="w-4 h-4 text-gray-500" />
-                  <span>{new Date(currentTrip.departure_date).toLocaleDateString('es-AR')}</span>
+                  <span>{currentTrip.start_date ? new Date(currentTrip.start_date).toLocaleDateString('es-AR') : 'Fecha pendiente'}</span>
                 </div>
               </div>
 
