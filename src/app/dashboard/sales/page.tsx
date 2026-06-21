@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Receipt, Banknote } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Receipt, Banknote, Download } from 'lucide-react'
 import { SaleForm } from '@/components/sales/SaleForm'
 import { Button } from '@/components/ui/button'
+import { DownloadPdfButton } from '@/components/sales/DownloadPdfButton'
 
 export default async function SalesPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
@@ -28,6 +29,9 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
 
   const { data: clients } = await supabase.from('clients').select('id, company_name')
   const { data: trips } = await supabase.from('trips').select('id, trip_code, client_id, origin, destination')
+  
+  const { data: companySettingsArray } = await supabase.from('company_settings').select('*').limit(1)
+  const company = companySettingsArray && companySettingsArray.length > 0 ? companySettingsArray[0] : null
 
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
@@ -103,13 +107,7 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {/* El PDF se generaría abriendo una nueva ventana con estilo de impresión */}
-                        <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => {
-                          // TODO: Replace with real PDF generator
-                          alert('Módulo de facturación ARCA próximo a integrar. Función de PDF temporalmente deshabilitada.')
-                        }}>
-                          <Download className="h-3.5 w-3.5" /> PDF
-                        </Button>
+                        <DownloadPdfButton sale={sale} company={company} />
 
                         <form action={async () => {
                           'use server'

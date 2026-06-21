@@ -2,9 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Truck, Home, Users, FileText, LayoutDashboard, Receipt, Shield, Bell, Store, Wallet, Landmark, Banknote, FileDigit, MapPin, Bot } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Truck,
+  Users,
+  Settings,
+  LogOut,
+  Receipt,
+  Wrench,
+  TrendingUp,
+  Landmark,
+  Building2,
+  Wallet,
+  Bell,
+  FileDigit,
+  MapPin,
+  Bot,
+  Shield,
+  Store,
+  Banknote
+} from 'lucide-react'
 
-export function SidebarNav({ isAdmin, permissions }: { isAdmin: boolean, permissions: string[] }) {
+export function SidebarNav({ isAdmin, permissions, role = 'admin' }: { isAdmin: boolean, permissions: string[], role?: 'admin' | 'secretaria' }) {
   const pathname = usePathname()
   
   const hasAccess = (module: string) => isAdmin || permissions.includes(module)
@@ -24,6 +43,9 @@ export function SidebarNav({ isAdmin, permissions }: { isAdmin: boolean, permiss
     { href: '/dashboard/drivers', label: 'Choferes', icon: Users, id: 'drivers', group: 'DIRECTORIO' },
     { href: '/dashboard/vehicles', label: 'Flota', icon: Truck, id: 'vehicles', group: 'DIRECTORIO' },
     
+    { href: '/dashboard/company', label: 'Mi Empresa', icon: Building2, id: 'company', group: 'DIRECTORIO' },
+    { href: '/dashboard/partners-wallet', label: 'Caja Socios', icon: Landmark, id: 'partners', group: 'DIRECTORIO' },
+
     { href: '#', label: 'Facturación AFIP', icon: FileDigit, id: 'afip', group: 'MÓDULOS PREMIUM' },
     { href: '#', label: 'Track GPS', icon: MapPin, id: 'gps', group: 'MÓDULOS PREMIUM' },
     { href: '#', label: 'Agente de IA', icon: Bot, id: 'ai', group: 'MÓDULOS PREMIUM' },
