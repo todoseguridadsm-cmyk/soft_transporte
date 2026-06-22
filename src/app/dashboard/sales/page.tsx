@@ -5,10 +5,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { SaleForm } from '@/components/sales/SaleForm'
 import { Button } from '@/components/ui/button'
 import { DownloadPdfButton } from '@/components/sales/DownloadPdfButton'
+import { ExportExcelButton } from '@/components/ui/ExportExcelButton'
 
 export default async function SalesPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
   const filterClient = searchParams.client_id as string || ''
+  const filterMonth = searchParams.month as string || ''
 
   const supabase = await createClient()
 
@@ -23,6 +25,13 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
 
   if (filterClient) {
     query = query.eq('client_id', filterClient)
+  }
+
+  if (filterMonth) {
+    const [year, month] = filterMonth.split('-')
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString()
+    const endDate = new Date(parseInt(year), parseInt(month), 1).toISOString()
+    query = query.gte('created_at', startDate).lt('created_at', endDate)
   }
 
   const { data: sales } = await query
@@ -41,6 +50,17 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
   const { data: companySettingsArray } = await supabase.from('company_settings').select('*').limit(1)
   const company = companySettingsArray && companySettingsArray.length > 0 ? companySettingsArray[0] : null
 
+  // Prepare data for Excel
+  const excelData = sales?.map(sale => ({
+    Fecha: new Date(sale.created_at).toLocaleDateString(),
+    Comprobante: sale.voucher_number,
+    Cliente: sale.clients?.company_name || 'Consumidor Final',
+    CUIT: sale.clients?.cuit || '-',
+    'Viaje Asociado': sale.trips ? `${sale.trips.trip_code} - ${sale.trips.origin} a ${sale.trips.destination}` : 'Sin viaje',
+    'Forma de Pago': sale.payment_method.replace('_', ' ').toUpperCase(),
+    Monto: sale.amount
+  })) || []
+
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -51,16 +71,30 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
         <SaleForm clients={clients || []} trips={allTrips || []} />
       </div>
 
-      <Card className="bg-card/40 backdrop-blur-xl border-border/40 p-4 flex flex-wrap gap-4 items-end">
-        <div className="space-y-1 w-full sm:w-auto">
-          <label className="text-xs font-bold text-muted-foreground uppercase">Filtrar por Cliente</label>
-          <form action="/dashboard/sales" className="flex gap-2">
-            <select name="client_id" defaultValue={filterClient} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:w-64">
+      <Card className="bg-card/40 backdrop-blur-xl border-border/40 p-4 flex flex-wrap gap-4 items-end justify-between">
+        <form action="/dashboard/sales" className="flex flex-wrap gap-4 items-end">
+          <div className="space-y-1 w-full sm:w-auto">
+            <label className="text-xs font-bold text-muted-foreground uppercase">Filtrar por Cliente</label>
+            <select name="client_id" defaultValue={filterClient} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:w-64 block">
               <option value="">Todos los clientes</option>
               {clients?.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
             </select>
+          </div>
+          <div className="space-y-1 w-full sm:w-auto">
+            <label className="text-xs font-bold text-muted-foreground uppercase">Filtrar por Mes</label>
+            <input type="month" name="month" defaultValue={filterMonth} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:w-48 block" />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button type="submit" variant="secondary" size="sm" className="h-9">Filtrar</Button>
-          </form>
+            {(filterClient || filterMonth) && (
+              <Button type="button" variant="ghost" size="sm" className="h-9" asChild>
+                <a href="/dashboard/sales">Limpiar</a>
+              </Button>
+            )}
+          </div>
+        </form>
+        <div className="flex w-full sm:w-auto justify-end">
+          <ExportExcelButton data={excelData} filename={`Ventas_${filterMonth || 'Total'}`} />
         </div>
       </Card>
 

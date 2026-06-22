@@ -4,11 +4,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Wallet, Banknote, UserRound } from 'lucide-react'
 import { CompanyExpenseForm } from '@/components/companyExpenses/CompanyExpenseForm'
 import { Button } from '@/components/ui/button'
+import { ExportExcelButton } from '@/components/ui/ExportExcelButton'
 
-export default async function CompanyExpensesPage() {
+export default async function CompanyExpensesPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams;
+  const filterMonth = searchParams.month as string || ''
+
   const supabase = await createClient()
 
-  const { data: expenses } = await supabase
+  let expensesQuery = supabase
     .from('company_expenses')
     .select(`
       *,
@@ -17,13 +21,25 @@ export default async function CompanyExpensesPage() {
     `)
     .order('created_at', { ascending: false })
 
-  const { data: driverExpenses } = await supabase
+  let driverExpensesQuery = supabase
     .from('expenses')
     .select(`
       *,
       profiles ( full_name )
     `)
     .eq('status', 'approved')
+
+  if (filterMonth) {
+    const [year, month] = filterMonth.split('-')
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString()
+    const endDate = new Date(parseInt(year), parseInt(month), 1).toISOString()
+    
+    expensesQuery = expensesQuery.gte('created_at', startDate).lt('created_at', endDate)
+    driverExpensesQuery = driverExpensesQuery.gte('created_at', startDate).lt('created_at', endDate)
+  }
+
+  const { data: expenses } = await expensesQuery
+  const { data: driverExpenses } = await driverExpensesQuery
 
   const { data: suppliers } = await supabase.from('suppliers').select('id, company_name')
   const { data: drivers } = await supabase.from('profiles').select('id, full_name, balance').eq('role', 'chofer')
@@ -53,6 +69,18 @@ export default async function CompanyExpensesPage() {
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
+  // Prepare data for Excel
+  const excelData = mergedExpenses.map(exp => ({
+    Fecha: new Date(exp.date).toLocaleDateString(),
+    Tipo: exp.type === 'company_expense' ? 'Gasto Empresa' : 'Gasto Chofer/Viaje',
+    Categoría: exp.category.replace('_', ' ').toUpperCase(),
+    Descripción: exp.description,
+    Proveedor: exp.supplier || '-',
+    Chofer: exp.driver || '-',
+    'Forma de Pago': exp.payment_method.replace('_', ' ').toUpperCase(),
+    Monto: exp.amount
+  }))
+
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -62,6 +90,22 @@ export default async function CompanyExpensesPage() {
         </div>
         <CompanyExpenseForm suppliers={suppliers || []} drivers={drivers || []} />
       </div>
+
+      <Card className="bg-card/40 backdrop-blur-xl border-border/40 p-4 flex flex-wrap gap-4 items-end justify-between">
+        <form action="/dashboard/company-expenses" className="flex gap-2 items-end">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-muted-foreground uppercase">Filtrar por Mes</label>
+            <input type="month" name="month" defaultValue={filterMonth} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm block" />
+          </div>
+          <Button type="submit" variant="secondary" size="sm" className="h-9">Filtrar</Button>
+          {filterMonth && (
+            <Button type="button" variant="ghost" size="sm" className="h-9" asChild>
+              <a href="/dashboard/company-expenses">Limpiar</a>
+            </Button>
+          )}
+        </form>
+        <ExportExcelButton data={excelData} filename={`Egresos_${filterMonth || 'Total'}`} />
+      </Card>
 
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
