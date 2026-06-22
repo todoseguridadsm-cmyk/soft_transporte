@@ -29,23 +29,26 @@ export function SidebarNav({ isAdmin, permissions, role = 'admin' }: { isAdmin: 
   const hasAccess = (module: string) => isAdmin || permissions.includes(module)
 
   const links = [
+    // PRINCIPAL
     { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard, id: 'home', exact: true, group: 'PRINCIPAL' },
-    { href: '/dashboard/alerts', label: 'Alertas', icon: Bell, id: 'alerts', group: 'PRINCIPAL' },
+    { href: '/dashboard/company', label: 'Mi Empresa', icon: Building2, id: 'company', group: 'PRINCIPAL' },
+    { href: '/dashboard/suppliers', label: 'Proveedores', icon: Store, id: 'suppliers', group: 'PRINCIPAL' },
+    { href: '/dashboard/clients', label: 'Clientes', icon: Users, id: 'clients', group: 'PRINCIPAL' },
+    { href: '/dashboard/vehicles', label: 'Flota', icon: Truck, id: 'vehicles', group: 'PRINCIPAL' },
+    { href: '/dashboard/drivers', label: 'Choferes', icon: Users, id: 'drivers', group: 'PRINCIPAL' },
     
+    // OPERACIONES
+    { href: '/dashboard/alerts', label: 'Alertas', icon: Bell, id: 'alerts', group: 'OPERACIONES' },
     { href: '/dashboard/trips', label: 'Viajes', icon: Truck, id: 'trips', group: 'OPERACIONES' },
     { href: '/dashboard/expenses', label: 'Carga de Tickets', icon: Receipt, id: 'expenses', group: 'OPERACIONES' },
     { href: '/dashboard/sales', label: 'Ventas y Cobros', icon: Banknote, id: 'sales', group: 'OPERACIONES' },
     { href: '/dashboard/company-expenses', label: 'Egresos y Sueldos', icon: Wallet, id: 'company_expenses', group: 'OPERACIONES' },
     
-    { href: '/dashboard/checks', label: 'Cartera de Cheques', icon: Landmark, id: 'checks', group: 'DIRECTORIO' },
-    { href: '/dashboard/clients', label: 'Clientes', icon: Users, id: 'clients', group: 'DIRECTORIO' },
-    { href: '/dashboard/suppliers', label: 'Proveedores', icon: Store, id: 'suppliers', group: 'DIRECTORIO' },
-    { href: '/dashboard/drivers', label: 'Choferes', icon: Users, id: 'drivers', group: 'DIRECTORIO' },
-    { href: '/dashboard/vehicles', label: 'Flota', icon: Truck, id: 'vehicles', group: 'DIRECTORIO' },
-    
-    { href: '/dashboard/company', label: 'Mi Empresa', icon: Building2, id: 'company', group: 'DIRECTORIO' },
-    { href: '/dashboard/partners-wallet', label: 'Caja Socios', icon: Landmark, id: 'partners', group: 'DIRECTORIO' },
+    // FINANZAS Y SOCIOS
+    { href: '/dashboard/checks', label: 'Cartera de Cheques', icon: Landmark, id: 'checks', group: 'FINANZAS Y SOCIOS' },
+    { href: '/dashboard/partners-wallet', label: 'Caja Socios', icon: Landmark, id: 'partners', group: 'FINANZAS Y SOCIOS' },
 
+    // MÓDULOS PREMIUM
     { href: '#', label: 'Facturación AFIP', icon: FileDigit, id: 'afip', group: 'MÓDULOS PREMIUM' },
     { href: '#', label: 'Track GPS', icon: MapPin, id: 'gps', group: 'MÓDULOS PREMIUM' },
     { href: '#', label: 'Agente de IA', icon: Bot, id: 'ai', group: 'MÓDULOS PREMIUM' },
