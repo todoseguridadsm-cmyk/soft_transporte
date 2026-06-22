@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { UserForm } from '@/components/users/UserForm'
-import { Button } from '@/components/ui/button'
-import { deleteUser } from '@/app/actions/users'
+import { DeleteUserButton } from '@/components/users/DeleteUserButton'
 
 export default async function UsersPage() {
   const supabase = await createClient()
@@ -72,14 +71,7 @@ export default async function UsersPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <form action={async () => {
-                          'use server'
-                          await deleteUser(user.id)
-                        }}>
-                          <Button variant="destructive" size="sm" className="h-8">
-                            Eliminar
-                          </Button>
-                        </form>
+                        <DeleteUserButton userId={user.id} />
                       </TableCell>
                     </TableRow>
                   )
