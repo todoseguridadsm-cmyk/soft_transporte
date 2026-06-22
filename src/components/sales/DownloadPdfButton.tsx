@@ -64,6 +64,21 @@ export function DownloadPdfButton({ sale, company }: DownloadPdfButtonProps) {
 
     doc.line(14, 76, 196, 76)
 
+    // Parse IVA from notes
+    let subtotal = Number(sale.amount)
+    let ivaAmount = 0
+    let ivaRate = 0
+    try {
+      if (sale.notes && sale.notes.startsWith('{')) {
+        const notesObj = JSON.parse(sale.notes)
+        if (notesObj.subtotal !== undefined) {
+          subtotal = notesObj.subtotal
+          ivaAmount = notesObj.iva_amount
+          ivaRate = notesObj.iva_rate
+        }
+      }
+    } catch (e) {}
+
     // Detail Table
     autoTable(doc, {
       startY: 85,
@@ -72,7 +87,7 @@ export function DownloadPdfButton({ sale, company }: DownloadPdfButtonProps) {
         [
           `Servicio de Transporte / Flete${sale.trips ? ` (Ref: ${sale.trips.trip_code})` : ''}`,
           sale.payment_method.replace('_', ' ').toUpperCase(),
-          `$${Number(sale.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
+          `$${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         ]
       ],
       theme: 'grid',
@@ -83,11 +98,20 @@ export function DownloadPdfButton({ sale, company }: DownloadPdfButtonProps) {
       }
     })
 
-    // Total
-    const finalY = (doc as any).lastAutoTable.finalY || 120
+    // Totals
+    let finalY = (doc as any).lastAutoTable.finalY || 120
+    
+    if (ivaAmount > 0) {
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Subtotal: $${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 196, finalY + 10, { align: 'right' })
+      doc.text(`IVA (${ivaRate * 100}%): $${ivaAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 196, finalY + 16, { align: 'right' })
+      finalY += 12
+    }
+
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    doc.text(`TOTAL RECIBIDO: $${Number(sale.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, 196, finalY + 15, { align: 'right' })
+    doc.text(`TOTAL RECIBIDO: $${Number(sale.amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 196, finalY + 15, { align: 'right' })
 
     // Footer
     doc.setFontSize(9)

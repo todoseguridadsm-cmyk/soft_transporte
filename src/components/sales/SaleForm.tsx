@@ -15,6 +15,14 @@ export function SaleForm({ clients, trips, defaultTripId, defaultClientId, trigg
   const [paymentMethod, setPaymentMethod] = useState('')
   const [clientId, setClientId] = useState(defaultClientId || '')
   const [tripId, setTripId] = useState(defaultTripId || '')
+  const [amount, setAmount] = useState('')
+  const [ivaRate, setIvaRate] = useState('0.21') // Default 21%
+
+  // Cálculos dinámicos
+  const numAmount = parseFloat(amount) || 0
+  const numIvaRate = parseFloat(ivaRate)
+  const subtotal = numAmount / (1 + numIvaRate)
+  const ivaAmount = numAmount - subtotal
 
   // Filtrar viajes del cliente seleccionado
   const clientTrips = trips.filter(t => !clientId || t.client_id === clientId)
@@ -28,6 +36,15 @@ export function SaleForm({ clients, trips, defaultTripId, defaultClientId, trigg
     if (tripId) {
       formData.set('trip_id', tripId)
     }
+
+    const userNotes = formData.get('notes') as string
+    const notesObj = {
+      text: userNotes,
+      iva_rate: numIvaRate,
+      subtotal: subtotal,
+      iva_amount: ivaAmount
+    }
+    formData.set('notes', JSON.stringify(notesObj))
 
     const result = await addSale(formData)
     
@@ -96,12 +113,38 @@ export function SaleForm({ clients, trips, defaultTripId, defaultClientId, trigg
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <Label htmlFor="amount" className="text-foreground/80 font-semibold">Monto ($) <span className="text-destructive">*</span></Label>
-              <Input id="amount" name="amount" type="number" step="0.01" placeholder="0.00" required className="bg-background/50 h-11 font-bold text-blue-500 text-lg" />
+              <Label htmlFor="amount" className="text-foreground/80 font-semibold">Total a Facturar ($) <span className="text-destructive">*</span></Label>
+              <Input id="amount" name="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required className="bg-background/50 h-11 font-bold text-blue-500 text-lg" />
             </div>
             
             <div className="space-y-3">
-              <Label className="text-foreground/80 font-semibold flex items-center gap-2"><Banknote className="h-4 w-4" /> Cobro <span className="text-destructive">*</span></Label>
+              <Label className="text-foreground/80 font-semibold">Tipo de IVA <span className="text-destructive">*</span></Label>
+              <Select value={ivaRate} onValueChange={setIvaRate} required>
+                <SelectTrigger className="bg-background/50 h-11">
+                  <SelectValue placeholder="IVA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.21">IVA 21%</SelectItem>
+                  <SelectItem value="0.105">IVA 10.5%</SelectItem>
+                  <SelectItem value="0">Exento (0%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="bg-muted/30 rounded-lg p-3 border border-border/50 flex justify-between text-sm">
+            <div className="flex flex-col">
+              <span className="text-muted-foreground font-semibold">Subtotal Neto</span>
+              <span className="font-bold text-foreground/80">${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-muted-foreground font-semibold">IVA ({numIvaRate * 100}%)</span>
+              <span className="font-bold text-foreground/80">${ivaAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-foreground/80 font-semibold flex items-center gap-2"><Banknote className="h-4 w-4" /> Cobro <span className="text-destructive">*</span></Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
                 <SelectTrigger className="bg-background/50 h-11">
                   <SelectValue placeholder="¿Cómo paga?" />
