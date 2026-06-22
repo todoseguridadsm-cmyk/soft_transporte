@@ -18,12 +18,18 @@ import { CheckCircle } from 'lucide-react'
 export default async function DashboardPage() {
   const supabase = await createClient()
 
-  // Verify Role
+  let fullName = 'Usuario'
+  let role = 'empleado'
+
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
     const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
-    if (profile?.role === 'chofer') {
-      return <DriverDashboardView userId={user.id} fullName={profile.full_name || 'Chofer'} />
+    if (profile) {
+      fullName = profile.full_name || 'Usuario'
+      role = profile.role
+      if (role === 'chofer') {
+        return <DriverDashboardView userId={user.id} fullName={fullName} />
+      }
     }
   }
 
@@ -102,6 +108,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-foreground/90">Command Center</h2>
+          <p className="text-lg font-bold text-primary mt-1">¡Hola, {fullName}!</p>
           <p className="text-muted-foreground font-medium mt-1">Visión ejecutiva del estado general de la flota y finanzas.</p>
         </div>
       </div>
