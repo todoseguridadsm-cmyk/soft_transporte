@@ -14,6 +14,8 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
   const [loading, setLoading] = useState(false)
   const [category, setCategory] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [driverId, setDriverId] = useState('')
+  const [supplierId, setSupplierId] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -22,6 +24,8 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
     const formData = new FormData(e.currentTarget)
     formData.append('category', category)
     formData.append('payment_method', paymentMethod)
+    if (driverId) formData.append('driver_id', driverId)
+    if (supplierId) formData.append('supplier_id', supplierId)
 
     const result = await addCompanyExpense(formData)
     
@@ -32,6 +36,8 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
       setOpen(false)
       setCategory('')
       setPaymentMethod('')
+      setDriverId('')
+      setSupplierId('')
     }
   }
 
@@ -84,10 +90,10 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
 
           {(category === 'combustible_mayorista' || category === 'neumaticos' || category === 'mantenimiento' || category === 'otros') && (
             <div className="space-y-3">
-              <Label htmlFor="supplier_id" className="text-foreground/80 font-semibold">Proveedor Asignado</Label>
-              <Select name="supplier_id">
+              <Label className="text-foreground/80 font-semibold">Proveedor Asignado</Label>
+              <Select value={supplierId} onValueChange={setSupplierId}>
                 <SelectTrigger className="bg-background/50 h-11">
-                  <SelectValue placeholder="Opcional: Seleccionar Proveedor" />
+                  {supplierId ? suppliers.find(s => s.id === supplierId)?.company_name : <span className="text-muted-foreground">Opcional: Seleccionar Proveedor</span>}
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.map(s => (
@@ -100,10 +106,13 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
 
           {(category === 'sueldo' || category === 'ajuste_saldo') && (
             <div className="space-y-3 p-4 bg-primary/5 border border-primary/10 rounded-lg">
-              <Label htmlFor="driver_id" className="text-foreground/80 font-semibold">Chofer a depositar/ajustar</Label>
-              <Select name="driver_id" required>
+              <Label className="text-foreground/80 font-semibold">Chofer a depositar/ajustar</Label>
+              <Select value={driverId} onValueChange={setDriverId} required>
                 <SelectTrigger className="bg-background/50 h-11">
-                  <SelectValue placeholder="Selecciona un chofer" />
+                  {driverId ? (() => {
+                    const d = drivers.find(x => x.id === driverId);
+                    return d ? `${d.full_name} (Saldo: $${d.balance || 0})` : "Selecciona un chofer"
+                  })() : <span className="text-muted-foreground">Selecciona un chofer</span>}
                 </SelectTrigger>
                 <SelectContent>
                   {drivers.map(d => (

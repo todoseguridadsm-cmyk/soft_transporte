@@ -34,13 +34,23 @@ export default async function DashboardPage() {
   }
 
   // --- 1. Fetching Data for KPIs ---
+  const now = new Date()
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  
+  const { data: currentMonthSales } = await supabase
+    .from('sales')
+    .select('amount, created_at')
+    .gte('created_at', firstDayOfMonth)
+
+  const facturacionMes = currentMonthSales?.reduce((acc, s) => acc + (s.amount || 0), 0) || 0
+  const facturacionCount = currentMonthSales?.length || 0
+
   const { data: allTrips } = await supabase.from('trips').select('id, origin, destination, price, status')
   const { data: allExpenses } = await supabase.from('expenses').select('trip_id, amount, status')
   const { data: vehicles } = await supabase.from('vehicles').select('id, plate, current_km, next_service_km, status')
   
   // Calculate KPIs
   const completedTrips = allTrips?.filter(t => t.status === 'completed') || []
-  const facturacion = completedTrips.reduce((acc, t) => acc + (t.price || 0), 0)
   
   let rentabilidadTotal = 0
   completedTrips.forEach(t => {
@@ -124,9 +134,9 @@ export default async function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">${facturacion.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-white">${facturacionMes.toLocaleString()}</div>
             <p className="text-xs font-medium text-emerald-500 mt-1 flex items-center gap-1">
-              0 comprobantes emitidos
+              {facturacionCount} comprobantes emitidos
             </p>
           </CardContent>
         </Card>

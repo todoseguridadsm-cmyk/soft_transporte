@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Wallet, Banknote } from 'lucide-react'
+import { Wallet, Banknote, UserRound } from 'lucide-react'
 import { CompanyExpenseForm } from '@/components/companyExpenses/CompanyExpenseForm'
 import { Button } from '@/components/ui/button'
 
@@ -17,8 +17,41 @@ export default async function CompanyExpensesPage() {
     `)
     .order('created_at', { ascending: false })
 
+  const { data: driverExpenses } = await supabase
+    .from('expenses')
+    .select(`
+      *,
+      profiles ( full_name )
+    `)
+    .eq('status', 'approved')
+
   const { data: suppliers } = await supabase.from('suppliers').select('id, company_name')
   const { data: drivers } = await supabase.from('profiles').select('id, full_name, balance').eq('role', 'chofer')
+
+  const mergedExpenses = [
+    ...(expenses || []).map(e => ({
+       id: e.id,
+       date: e.created_at,
+       type: 'company_expense',
+       category: e.category,
+       description: e.description,
+       supplier: e.suppliers?.company_name || null,
+       driver: e.profiles?.full_name || null,
+       payment_method: e.payment_method,
+       amount: e.amount
+    })),
+    ...(driverExpenses || []).map(e => ({
+       id: e.id,
+       date: e.created_at,
+       type: 'trip_expense',
+       category: e.category,
+       description: `Ticket Viaje: ${e.description}`,
+       supplier: e.ocr_data?.proveedor || null,
+       driver: e.profiles?.full_name || null,
+       payment_method: 'Saldado (Chofer)',
+       amount: e.amount
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
@@ -30,11 +63,41 @@ export default async function CompanyExpensesPage() {
         <CompanyExpenseForm suppliers={suppliers || []} drivers={drivers || []} />
       </div>
 
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+          <UserRound className="h-4 w-4" /> Saldos de Choferes
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {drivers?.map(d => (
+            <Card key={d.id} className="bg-card/40 backdrop-blur-xl border-border/40 shadow-sm transition-all hover:shadow-md">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase">{d.full_name}</p>
+                  <div className={`text-xl font-black mt-1 ${
+                    (d.balance || 0) < 0 ? 'text-red-500' : (d.balance || 0) > 0 ? 'text-emerald-500' : 'text-foreground'
+                  }`}>
+                    ${(d.balance || 0).toLocaleString()}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {(d.balance || 0) < 0 ? 'Le debemos al chofer' : (d.balance || 0) > 0 ? 'El chofer tiene a favor' : 'Cuenta al día'}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-full ${
+                  (d.balance || 0) < 0 ? 'bg-red-500/10 text-red-500' : (d.balance || 0) > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
+                }`}>
+                  <Wallet className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
       <Card className="bg-card/40 backdrop-blur-xl border-border/40 shadow-xl overflow-hidden">
         <CardHeader className="border-b border-border/40 bg-muted/20">
           <div className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-emerald-500" />
-            <CardTitle className="text-lg font-bold text-foreground/90">Historial de Egresos</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground/90">Historial de Egresos Consolidado</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -46,26 +109,28 @@ export default async function CompanyExpensesPage() {
                 <TableHead className="font-semibold text-muted-foreground">Descripción / Entidad</TableHead>
                 <TableHead className="font-semibold text-muted-foreground">Forma de Pago</TableHead>
                 <TableHead className="text-right font-semibold text-muted-foreground">Monto</TableHead>
-                <TableHead className="text-right font-semibold text-muted-foreground">Acciones</TableHead>
+                <TableHead className="text-right font-semibold text-muted-foreground">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expenses && expenses.length > 0 ? (
-                expenses.map((exp) => (
-                  <TableRow key={exp.id} className="border-border/40 hover:bg-muted/30 transition-colors group">
+              {mergedExpenses.length > 0 ? (
+                mergedExpenses.map((exp) => (
+                  <TableRow key={`${exp.type}-${exp.id}`} className="border-border/40 hover:bg-muted/30 transition-colors group">
                     <TableCell className="text-muted-foreground font-medium">
-                      {new Date(exp.created_at).toLocaleDateString()}
+                      {new Date(exp.date).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-muted border border-border/50 uppercase tracking-wider text-muted-foreground">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${
+                        exp.type === 'trip_expense' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-muted text-muted-foreground border-border/50'
+                      }`}>
                         {exp.category.replace('_', ' ')}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium text-foreground/90">{exp.description}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {exp.suppliers?.company_name ? `Proveedor: ${exp.suppliers.company_name}` : ''}
-                        {exp.profiles?.full_name ? `Chofer: ${exp.profiles.full_name}` : ''}
+                        {exp.supplier ? `Prov: ${exp.supplier} ` : ''}
+                        {exp.driver ? `Chofer: ${exp.driver}` : ''}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -77,15 +142,19 @@ export default async function CompanyExpensesPage() {
                       ${exp.amount.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <form action={async () => {
-                        'use server'
-                        const { deleteCompanyExpense } = await import('@/app/actions/companyExpenses')
-                        await deleteCompanyExpense(exp.id)
-                      }}>
-                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
-                          Anular
-                        </Button>
-                      </form>
+                      {exp.type === 'company_expense' ? (
+                        <form action={async () => {
+                          'use server'
+                          const { deleteCompanyExpense } = await import('@/app/actions/companyExpenses')
+                          await deleteCompanyExpense(exp.id)
+                        }}>
+                          <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            Anular
+                          </Button>
+                        </form>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Gasto de Viaje</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

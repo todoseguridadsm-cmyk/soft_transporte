@@ -15,17 +15,19 @@ export default async function PartnersWalletPage(props: { searchParams: Promise<
   const supabase = await createClient()
 
   // 1. Calculate General Metrics (Sales - Expenses)
-  const { data: sales } = await supabase.from('sales').select('amount')
-  const { data: expenses } = await supabase.from('expenses').select('amount').eq('status', 'approved')
+  const { data: sales } = await supabase.from('sales').select('id, amount, created_at, client_id, clients(company_name)')
+  const { data: expenses } = await supabase.from('expenses').select('id, amount, description, created_at, ocr_data, driver_id, profiles(full_name)').eq('status', 'approved')
+  const { data: company_expenses } = await supabase.from('company_expenses').select('id, amount, description, created_at, category, supplier_id, suppliers(company_name), driver_id, profiles(full_name)')
 
   const totalSales = sales?.reduce((acc, sale) => acc + (sale.amount || 0), 0) || 0
-  const totalExpenses = expenses?.reduce((acc, exp) => acc + (exp.amount || 0), 0) || 0
+  const totalTripExpenses = expenses?.reduce((acc, exp) => acc + (exp.amount || 0), 0) || 0
+  const totalCompanyExpenses = company_expenses?.reduce((acc, exp) => acc + (exp.amount || 0), 0) || 0
+  const totalExpenses = totalTripExpenses + totalCompanyExpenses
   const netProfit = totalSales - totalExpenses
 
-  // 2. Fetch Partners
+  // 2. Fetch Partners and Transactions
   const { data: partners } = await supabase.from('partners').select('*').order('full_name')
 
-  // 3. Fetch Transactions
   let query = supabase.from('partner_transactions').select(`
     *,
     partners ( full_name )
@@ -39,11 +41,80 @@ export default async function PartnersWalletPage(props: { searchParams: Promise<
 
   const totalRetiros = transactions?.filter(t => t.type === 'withdrawal').reduce((acc, t) => acc + Number(t.amount), 0) || 0
 
+  // 3. Unify Ledger (Libro Diario)
+  let mergedLedger: any[] = []
+
+  if (!filterPartner) {
+    // Ingresos por Ventas
+    sales?.forEach(s => mergedLedger.push({
+      id: `sale-${s.id}`,
+      date: s.created_at,
+      type: 'Ingreso',
+      concept: 'Facturación / Cobro de Viaje',
+      entity: s.clients?.company_name || 'Cliente',
+      income: s.amount,
+      expense: 0,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10'
+    }))
+
+    // Egresos por Gastos de Empresa
+    company_expenses?.forEach(e => mergedLedger.push({
+      id: `cexp-${e.id}`,
+      date: e.created_at,
+      type: 'Egreso Empresa',
+      concept: e.description || e.category.replace('_', ' '),
+      entity: e.suppliers?.company_name || e.profiles?.full_name || 'Empresa',
+      income: 0,
+      expense: e.amount,
+      color: 'text-red-500',
+      bg: 'bg-red-500/10'
+    }))
+
+    // Egresos por Gastos de Choferes
+    expenses?.forEach(e => mergedLedger.push({
+      id: `texp-${e.id}`,
+      date: e.created_at,
+      type: 'Gasto Viaje',
+      concept: `Ticket: ${e.description}`,
+      entity: e.profiles?.full_name || 'Chofer',
+      income: 0,
+      expense: e.amount,
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10'
+    }))
+  }
+
+  // Movimientos de Socios
+  transactions?.forEach(t => mergedLedger.push({
+    id: `ptx-${t.id}`,
+    date: t.created_at,
+    type: t.type === 'withdrawal' ? 'Retiro Socio' : 'Aporte Socio',
+    concept: t.description || (t.type === 'withdrawal' ? 'Retiro de Ganancias' : 'Aporte de Capital'),
+    entity: t.partners?.full_name || 'Socio',
+    income: t.type === 'investment' ? t.amount : 0,
+    expense: t.type === 'withdrawal' ? t.amount : 0,
+    color: t.type === 'withdrawal' ? 'text-amber-500' : 'text-blue-500',
+    bg: t.type === 'withdrawal' ? 'bg-amber-500/10' : 'bg-blue-500/10'
+  }))
+
+  // Sort unified ledger by date
+  mergedLedger.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  // Calculate final running balance if needed, but for now we just list them.
+  let runningBalance = 0;
+  // If we want a running balance, we would sort ascending, calculate, then reverse.
+  mergedLedger.reverse().forEach(item => {
+    runningBalance += (item.income - item.expense)
+    item.balance = runningBalance
+  })
+  mergedLedger.reverse() // back to descending for display
+
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
       <div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-foreground/90">Caja Socios</h2>
-        <p className="text-muted-foreground font-medium mt-1">Rentabilidad general y retiros/aportes de socios.</p>
+        <h2 className="text-3xl font-extrabold tracking-tight text-foreground/90">Flujo de Caja General y Socios</h2>
+        <p className="text-muted-foreground font-medium mt-1">Libro diario con rentabilidad general y retiros/aportes.</p>
       </div>
 
       {/* Global Metrics */}
@@ -76,7 +147,7 @@ export default async function PartnersWalletPage(props: { searchParams: Promise<
           </div>
           <CardHeader className="pb-2 relative z-10">
             <CardTitle className="text-sm font-bold text-blue-100 uppercase flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> Ganancia Neta
+              <Wallet className="h-4 w-4" /> Caja Neta Empresa
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10">
@@ -92,7 +163,7 @@ export default async function PartnersWalletPage(props: { searchParams: Promise<
           <CardHeader className="border-b border-border/40 bg-muted/20">
             <div className="flex items-center gap-2">
               <ArrowRightLeft className="h-5 w-5 text-amber-500" />
-              <CardTitle className="text-lg font-bold">Nuevo Movimiento</CardTitle>
+              <CardTitle className="text-lg font-bold">Movimiento de Socios</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
@@ -148,12 +219,12 @@ export default async function PartnersWalletPage(props: { searchParams: Promise<
         {/* Transactions History */}
         <Card className="lg:col-span-2 bg-card/40 backdrop-blur-xl border-border/40 shadow-xl">
           <CardHeader className="border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg font-bold">Historial de Movimientos</CardTitle>
+            <CardTitle className="text-lg font-bold">Libro Diario General</CardTitle>
             
             <form action="/dashboard/partners-wallet" className="flex items-center gap-2">
               <select name="partner_id" defaultValue={filterPartner} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:w-48">
-                <option value="">Todos los socios</option>
-                {partners?.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                <option value="">Caja General (Todos)</option>
+                {partners?.map(p => <option key={p.id} value={p.id}>Solo {p.full_name}</option>)}
               </select>
               <Button type="submit" variant="secondary" size="sm" className="h-9">Filtrar</Button>
             </form>
@@ -166,53 +237,59 @@ export default async function PartnersWalletPage(props: { searchParams: Promise<
               </div>
             )}
             
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Socio</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Concepto</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions && transactions.length > 0 ? (
-                  transactions.map((t) => (
-                    <TableRow key={t.id} className="border-border/40 hover:bg-muted/30">
-                      <TableCell className="text-muted-foreground text-sm">
-                        {new Date(t.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="font-bold text-foreground/90">
-                        {t.partners?.full_name}
-                      </TableCell>
-                      <TableCell>
-                        {t.type === 'withdrawal' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-500/10 text-amber-500">Retiro</span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-500/10 text-blue-500">Aporte</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {t.description || '-'}
-                      </TableCell>
-                      <TableCell className={`text-right font-bold text-lg ${t.type === 'withdrawal' ? 'text-amber-500' : 'text-blue-500'}`}>
-                        {t.type === 'withdrawal' ? '-' : '+'}${Number(t.amount).toLocaleString()}
+            <div className="max-h-[600px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/40 hover:bg-transparent sticky top-0 bg-card/90 backdrop-blur z-10">
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tipo / Entidad</TableHead>
+                    <TableHead>Concepto</TableHead>
+                    <TableHead className="text-right">Ingreso</TableHead>
+                    <TableHead className="text-right">Egreso</TableHead>
+                    <TableHead className="text-right border-l border-border/30">Saldo Caja</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mergedLedger && mergedLedger.length > 0 ? (
+                    mergedLedger.map((t) => (
+                      <TableRow key={t.id} className="border-border/40 hover:bg-muted/30">
+                        <TableCell className="text-muted-foreground text-sm font-medium">
+                          {new Date(t.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${t.bg} ${t.color} mb-1`}>
+                            {t.type}
+                          </span>
+                          <div className="font-bold text-foreground/90 text-sm">
+                            {t.entity}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate" title={t.concept}>
+                          {t.concept || '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-emerald-500">
+                          {t.income > 0 ? `$${Number(t.income).toLocaleString()}` : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-red-500">
+                          {t.expense > 0 ? `$${Number(t.expense).toLocaleString()}` : '-'}
+                        </TableCell>
+                        <TableCell className={`text-right font-black border-l border-border/30 ${t.balance >= 0 ? 'text-blue-500' : 'text-red-500'}`}>
+                          ${t.balance.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No hay movimientos registrados.
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No hay movimientos registrados.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
-
       </div>
     </div>
   )
