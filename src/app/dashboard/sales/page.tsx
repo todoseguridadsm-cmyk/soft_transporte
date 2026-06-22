@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Receipt, Banknote } from 'lucide-react'
+import { Receipt, Banknote, Truck, ArrowRight, FileText } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SaleForm } from '@/components/sales/SaleForm'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,15 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
   const { data: sales } = await query
 
   const { data: clients } = await supabase.from('clients').select('id, company_name')
-  const { data: trips } = await supabase.from('trips').select('id, trip_code, client_id, origin, destination')
+  
+  // Fetch all trips and their sales to determine pending ones
+  const { data: allTrips } = await supabase.from('trips').select(`
+    id, trip_code, origin, destination, status, price, client_id, created_at,
+    clients ( company_name, cuit ),
+    sales ( id )
+  `).order('created_at', { ascending: false })
+
+  const pendingTrips = allTrips?.filter(t => !t.sales || t.sales.length === 0) || []
   
   const { data: companySettingsArray } = await supabase.from('company_settings').select('*').limit(1)
   const company = companySettingsArray && companySettingsArray.length > 0 ? companySettingsArray[0] : null
@@ -40,7 +48,7 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
           <h2 className="text-3xl font-extrabold tracking-tight text-foreground/90">Ventas y Facturación</h2>
           <p className="text-muted-foreground font-medium mt-1">Gestión de cobros a clientes y facturación de viajes.</p>
         </div>
-        <SaleForm clients={clients || []} trips={trips || []} />
+        <SaleForm clients={clients || []} trips={allTrips || []} />
       </div>
 
       <Card className="bg-card/40 backdrop-blur-xl border-border/40 p-4 flex flex-wrap gap-4 items-end">
@@ -56,11 +64,82 @@ export default async function SalesPage(props: { searchParams: Promise<{ [key: s
         </div>
       </Card>
 
+      {/* Viajes Pendientes de Facturar */}
+      <Card className="bg-card/40 backdrop-blur-xl border-amber-500/20 shadow-xl overflow-hidden">
+        <CardHeader className="border-b border-border/40 bg-amber-500/5">
+          <div className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-amber-500" />
+            <CardTitle className="text-lg font-bold text-foreground/90">Viajes Pendientes de Facturación</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/40 hover:bg-transparent">
+                <TableHead className="font-semibold text-muted-foreground">Fecha / Ruta</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Estado del Viaje</TableHead>
+                <TableHead className="text-right font-semibold text-muted-foreground">Precio Ref.</TableHead>
+                <TableHead className="text-right font-semibold text-muted-foreground">Acción</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingTrips.length > 0 ? (
+                pendingTrips.map((trip) => (
+                  <TableRow key={trip.id} className="border-border/40 hover:bg-muted/30 transition-colors">
+                    <TableCell>
+                      <div className="font-bold text-primary/80 font-mono text-xs">{trip.trip_code || 'S/C'}</div>
+                      <div className="text-sm font-medium mt-0.5 flex items-center gap-1.5">
+                        {trip.origin} <ArrowRight className="h-3 w-3 text-muted-foreground" /> {trip.destination}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium text-foreground/90">
+                      {(trip.clients as any)?.company_name || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        trip.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                        trip.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      }`}>
+                        {trip.status === 'in_progress' ? 'En Curso' : trip.status === 'completed' ? 'Finalizado' : 'A Confirmar'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-muted-foreground">
+                      ${trip.price?.toLocaleString() || '0.00'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <SaleForm 
+                        clients={clients || []} 
+                        trips={allTrips || []} 
+                        defaultTripId={trip.id} 
+                        defaultClientId={trip.client_id}
+                        trigger={
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-2 text-xs">
+                            <FileText className="h-3 w-3" /> Facturar
+                          </Button>
+                        } 
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow className="border-border/40 hover:bg-transparent">
+                  <TableCell colSpan={5} className="text-center h-24 text-muted-foreground/80 font-medium text-sm">
+                    No hay viajes pendientes de facturación.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       <Card className="bg-card/40 backdrop-blur-xl border-border/40 shadow-xl overflow-hidden">
         <CardHeader className="border-b border-border/40 bg-muted/20">
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-blue-500" />
-            <CardTitle className="text-lg font-bold text-foreground/90">Historial de Ventas</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground/90">Historial de Ventas Facturadas</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="p-0">

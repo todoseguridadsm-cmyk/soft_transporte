@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Loader2, Plus, Receipt, Banknote, Calendar } from 'lucide-react'
 
-export function SaleForm({ clients, trips }: { clients: any[], trips: any[] }) {
+export function SaleForm({ clients, trips, defaultTripId, defaultClientId, trigger }: { clients: any[], trips: any[], defaultTripId?: string, defaultClientId?: string, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
-  const [clientId, setClientId] = useState('')
+  const [clientId, setClientId] = useState(defaultClientId || '')
+  const [tripId, setTripId] = useState(defaultTripId || '')
 
   // Filtrar viajes del cliente seleccionado
   const clientTrips = trips.filter(t => !clientId || t.client_id === clientId)
@@ -24,6 +25,9 @@ export function SaleForm({ clients, trips }: { clients: any[], trips: any[] }) {
     
     const formData = new FormData(e.currentTarget)
     formData.append('payment_method', paymentMethod)
+    if (tripId) {
+      formData.set('trip_id', tripId)
+    }
 
     const result = await addSale(formData)
     
@@ -33,17 +37,20 @@ export function SaleForm({ clients, trips }: { clients: any[], trips: any[] }) {
     } else {
       alert(`Venta registrada exitosamente. Comprobante: ${result.voucher_number}`)
       setOpen(false)
+      if (!defaultClientId) setClientId('')
+      if (!defaultTripId) setTripId('')
       setPaymentMethod('')
-      setClientId('')
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 shadow-lg hover:shadow-primary/20 transition-all bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus className="h-4 w-4" /> Facturar Viaje / Venta
-        </Button>
+        {trigger ? trigger : (
+          <Button className="gap-2 shadow-lg hover:shadow-primary/20 transition-all bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-4 w-4" /> Facturar Viaje / Venta
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -60,7 +67,7 @@ export function SaleForm({ clients, trips }: { clients: any[], trips: any[] }) {
             <Label className="text-foreground/80 font-semibold">Cliente <span className="text-destructive">*</span></Label>
             <Select name="client_id" value={clientId} onValueChange={setClientId} required>
               <SelectTrigger className="bg-background/50 h-11">
-                <SelectValue placeholder="Seleccionar Cliente" />
+                {clientId ? clients.find(c => c.id === clientId)?.company_name : <span className="text-muted-foreground">Seleccionar Cliente</span>}
               </SelectTrigger>
               <SelectContent>
                 {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
@@ -70,9 +77,12 @@ export function SaleForm({ clients, trips }: { clients: any[], trips: any[] }) {
 
           <div className="space-y-3">
             <Label className="text-foreground/80 font-semibold">Viaje Asociado (Opcional)</Label>
-            <Select name="trip_id">
+            <Select name="trip_id" value={tripId} onValueChange={setTripId}>
               <SelectTrigger className="bg-background/50 h-11">
-                <SelectValue placeholder={clientTrips.length === 0 ? "No hay viajes para este cliente" : "Vincular a un Viaje"} />
+                {tripId ? (() => {
+                  const t = trips.find(x => x.id === tripId);
+                  return t ? `${t.trip_code || 'S/C'} - ${t.origin} a ${t.destination}` : "Vincular a un Viaje"
+                })() : <span className="text-muted-foreground">{clientTrips.length === 0 ? "No hay viajes para este cliente" : "Vincular a un Viaje"}</span>}
               </SelectTrigger>
               <SelectContent>
                 {clientTrips.map(t => (
