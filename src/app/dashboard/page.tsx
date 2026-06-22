@@ -70,7 +70,7 @@ export default async function DashboardPage() {
     } catch(e) {}
   })
 
-  const saldoIva = ivaVentas - ivaCompras // Positivo: A Pagar (En Contra). Negativo: A Favor.
+  const saldoIva = ivaCompras - ivaVentas // Positivo: A Favor (Compras > Ventas). Negativo: A Pagar (Ventas > Compras, En Contra).
 
   const { data: allTrips } = await supabase.from('trips').select('id, origin, destination, price, status')
   const { data: allExpenses } = await supabase.from('expenses').select('trip_id, amount, status')
@@ -158,7 +158,7 @@ export default async function DashboardPage() {
       {/* KPIs Superiores */}
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         {/* Card IVA: Teal/Cyan Gradient */}
-        <Card className={`bg-gradient-to-br ${saldoIva > 0 ? 'from-[#be123c] to-[#e11d48] shadow-rose-500/20 hover:shadow-rose-500/40' : 'from-[#0ea5e9] to-[#0284c7] shadow-sky-500/20 hover:shadow-sky-500/40'} border-none shadow-lg text-white transition-all relative overflow-hidden`}>
+        <Card className={`bg-gradient-to-br ${saldoIva < 0 ? 'from-[#be123c] to-[#e11d48] shadow-rose-500/20 hover:shadow-rose-500/40' : 'from-[#0ea5e9] to-[#0284c7] shadow-sky-500/20 hover:shadow-sky-500/40'} border-none shadow-lg text-white transition-all relative overflow-hidden`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-bold text-white/90">Posición IVA (Mes)</CardTitle>
             <div className={`p-2 rounded-full bg-white/20 backdrop-blur-md`}>
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="text-3xl font-extrabold">${Math.abs(saldoIva).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <p className={`text-[11px] font-medium mt-1 text-white/90`}>
-              {saldoIva > 0 ? 'Saldo En Contra (A Pagar)' : saldoIva < 0 ? 'Saldo A Favor (Crédito)' : 'Posición Neutra'}
+              {saldoIva < 0 ? 'Saldo En Contra (A Pagar)' : saldoIva > 0 ? 'Saldo A Favor (Crédito)' : 'Posición Neutra'}
             </p>
             <div className="text-[9px] mt-2 text-white/70 font-semibold uppercase tracking-wider flex justify-between">
               <span>Ventas: ${ivaVentas.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
