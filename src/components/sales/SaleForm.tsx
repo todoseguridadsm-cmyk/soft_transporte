@@ -145,18 +145,17 @@ export function SaleForm({ clients, trips, defaultTripId, defaultClientId, trigg
 
           <div className="space-y-3">
             <Label className="text-foreground/80 font-semibold flex items-center gap-2"><Banknote className="h-4 w-4" /> Cobro <span className="text-destructive">*</span></Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
-                <SelectTrigger className="bg-background/50 h-11">
-                  <SelectValue placeholder="¿Cómo paga?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="contado">Contado / Efectivo</SelectItem>
-                  <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
-                  <SelectItem value="cheque">Cheque (A Cobrar)</SelectItem>
-                  <SelectItem value="cuenta_corriente">Cuenta Corriente (Deuda)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
+              <SelectTrigger className="bg-background/50 h-11">
+                <SelectValue placeholder="¿Cómo paga?" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contado">Contado / Efectivo</SelectItem>
+                <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
+                <SelectItem value="cheque">Cheque (A Cobrar)</SelectItem>
+                <SelectItem value="cuenta_corriente">Cuenta Corriente (Deuda)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-3">

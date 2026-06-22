@@ -39,11 +39,38 @@ export default async function DashboardPage() {
   
   const { data: currentMonthSales } = await supabase
     .from('sales')
-    .select('amount, created_at')
+    .select('amount, created_at, notes')
+    .gte('created_at', firstDayOfMonth)
+
+  const { data: currentMonthExpenses } = await supabase
+    .from('company_expenses')
+    .select('amount, created_at, description')
     .gte('created_at', firstDayOfMonth)
 
   const facturacionMes = currentMonthSales?.reduce((acc, s) => acc + (s.amount || 0), 0) || 0
   const facturacionCount = currentMonthSales?.length || 0
+
+  let ivaVentas = 0
+  currentMonthSales?.forEach(s => {
+    try {
+      if (s.notes && s.notes.startsWith('{')) {
+        const obj = JSON.parse(s.notes)
+        if (obj.iva_amount) ivaVentas += obj.iva_amount
+      }
+    } catch(e) {}
+  })
+
+  let ivaCompras = 0
+  currentMonthExpenses?.forEach(e => {
+    try {
+      if (e.description && e.description.startsWith('{')) {
+        const obj = JSON.parse(e.description)
+        if (obj.iva_amount) ivaCompras += obj.iva_amount
+      }
+    } catch(e) {}
+  })
+
+  const saldoIva = ivaVentas - ivaCompras // Positivo: A Pagar (En Contra). Negativo: A Favor.
 
   const { data: allTrips } = await supabase.from('trips').select('id, origin, destination, price, status')
   const { data: allExpenses } = await supabase.from('expenses').select('trip_id, amount, status')
@@ -129,7 +156,26 @@ export default async function DashboardPage() {
       </div>
 
       {/* KPIs Superiores */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        {/* Card IVA: Teal/Cyan Gradient */}
+        <Card className={`bg-gradient-to-br ${saldoIva > 0 ? 'from-[#be123c] to-[#e11d48] shadow-rose-500/20 hover:shadow-rose-500/40' : 'from-[#0ea5e9] to-[#0284c7] shadow-sky-500/20 hover:shadow-sky-500/40'} border-none shadow-lg text-white transition-all relative overflow-hidden`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-bold text-white/90">Posición IVA (Mes)</CardTitle>
+            <div className={`p-2 rounded-full bg-white/20 backdrop-blur-md`}>
+              <ScanText className={`h-4 w-4 text-white`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-extrabold">${Math.abs(saldoIva).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <p className={`text-[11px] font-medium mt-1 text-white/90`}>
+              {saldoIva > 0 ? 'Saldo En Contra (A Pagar)' : saldoIva < 0 ? 'Saldo A Favor (Crédito)' : 'Posición Neutra'}
+            </p>
+            <div className="text-[9px] mt-2 text-white/70 font-semibold uppercase tracking-wider flex justify-between">
+              <span>Ventas: ${ivaVentas.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span>Compras: ${ivaCompras.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+            </div>
+          </CardContent>
+        </Card>
         {/* Card 1: Dark with Green Accents */}
         <Card className="bg-[#111827] border-border/20 shadow-xl hover:shadow-2xl transition-all">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
