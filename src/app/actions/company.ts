@@ -4,36 +4,41 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/navigation'
 
 export async function updateCompanySettings(formData: FormData) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const id = formData.get('id') as string
-  const company_name = formData.get('company_name') as string
-  const fantasy_name = formData.get('fantasy_name') as string
-  const cuit = formData.get('cuit') as string
-  const address = formData.get('address') as string
-  const phone = formData.get('phone') as string
-  const email = formData.get('email') as string
-  const postal_code = formData.get('postal_code') as string
-  const city = formData.get('city') as string
-  const province = formData.get('province') as string
+    const id = formData.get('id') as string
+    const company_name = formData.get('company_name') as string
+    const fantasy_name = formData.get('fantasy_name') as string
+    const cuit = formData.get('cuit') as string
+    const address = formData.get('address') as string
+    const phone = formData.get('phone') as string
+    const email = formData.get('email') as string
+    const postal_code = formData.get('postal_code') as string
+    const city = formData.get('city') as string
+    const province = formData.get('province') as string
 
-  if (id) {
-    const { error } = await supabase
-      .from('company_settings')
-      .update({ company_name, fantasy_name, cuit, address, phone, email, postal_code, city, province })
-      .eq('id', id)
+    if (id) {
+      const { error } = await supabase
+        .from('company_settings')
+        .update({ company_name, fantasy_name, cuit, address, phone, email, postal_code, city, province })
+        .eq('id', id)
 
-    if (error) return { error: error.message }
-  } else {
-    const { error } = await supabase
-      .from('company_settings')
-      .insert([{ company_name, fantasy_name, cuit, address, phone, email, postal_code, city, province }])
+      if (error) return { error: error.message }
+    } else {
+      const { error } = await supabase
+        .from('company_settings')
+        .insert([{ company_name, fantasy_name, cuit, address, phone, email, postal_code, city, province }])
 
-    if (error) return { error: error.message }
+      if (error) return { error: error.message }
+    }
+
+    revalidatePath('/dashboard/company')
+    return { success: true }
+  } catch (err: any) {
+    console.error("Crash in updateCompanySettings:", err)
+    return { error: 'Server exception: ' + (err.message || String(err)) }
   }
-
-  revalidatePath('/dashboard/company')
-  return { success: true }
 }
 
 export async function createPartner(formData: FormData) {
