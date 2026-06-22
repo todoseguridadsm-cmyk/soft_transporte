@@ -50,7 +50,7 @@ export default async function NewTripPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {clients?.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id} label={c.company_name}>{c.company_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -68,7 +68,7 @@ export default async function NewTripPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {vehicles?.map(v => (
-                      <SelectItem key={v.id} value={v.id}>{v.plate} ({v.brand})</SelectItem>
+                      <SelectItem key={v.id} value={v.id} label={`${v.plate} (${v.brand})`}>{v.plate} ({v.brand})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -84,7 +84,7 @@ export default async function NewTripPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {drivers?.map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                      <SelectItem key={d.id} value={d.id} label={d.full_name}>{d.full_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
