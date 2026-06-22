@@ -2,21 +2,39 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2, Check } from 'lucide-react'
 import { completeTrip } from '@/app/actions/trips'
 import { useRouter } from 'next/navigation'
 
-export function FinishTripButton({ tripId }: { tripId: string }) {
+export function FinishTripButton({ tripId, initialStatus = 'in_progress' }: { tripId: string, initialStatus?: string }) {
   const [loading, setLoading] = useState(false)
+  const [isFinished, setIsFinished] = useState(initialStatus === 'pending')
   const router = useRouter()
 
   const handleFinish = async () => {
     if (confirm('¿Cargaste todos los tickets y comprobantes? ¿Estás seguro de finalizar el viaje?')) {
       setLoading(true)
-      await completeTrip(tripId)
-      router.refresh()
-      setLoading(false)
+      const res = await completeTrip(tripId)
+      if (res?.error) {
+        alert(res.error)
+        setLoading(false)
+      } else {
+        setIsFinished(true)
+        router.refresh()
+      }
     }
+  }
+
+  if (isFinished || initialStatus === 'pending') {
+    return (
+      <Button 
+        disabled
+        className="w-full bg-gray-700 text-gray-300 font-bold h-12 rounded-xl shadow-none transition-all mt-6 opacity-80 cursor-not-allowed border border-gray-600"
+      >
+        <Check className="w-5 h-5 mr-2" />
+        VIAJE FINALIZADO
+      </Button>
+    )
   }
 
   return (

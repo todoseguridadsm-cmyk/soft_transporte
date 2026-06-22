@@ -119,7 +119,7 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
               {/* Botón Finalizar Viaje */}
               {(currentTrip.status === 'in_progress' || currentTrip.status === 'pending') && (
                 <div className="relative z-10">
-                  <FinishTripButton tripId={currentTrip.id} />
+                  <FinishTripButton tripId={currentTrip.id} initialStatus={currentTrip.status} />
                 </div>
               )}
             </CardContent>

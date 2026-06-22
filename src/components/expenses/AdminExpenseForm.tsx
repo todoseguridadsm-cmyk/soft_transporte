@@ -81,7 +81,7 @@ export function AdminExpenseForm({ drivers, trips }: { drivers: any[], trips: an
               <Label>Chofer <span className="text-destructive">*</span></Label>
               <Select value={driverId} onValueChange={setDriverId}>
                 <SelectTrigger className="bg-background/50">
-                  <SelectValue placeholder="Seleccionar chofer..." />
+                  {driverId ? drivers.find(d => d.id === driverId)?.full_name : <span className="text-muted-foreground">Seleccionar chofer...</span>}
                 </SelectTrigger>
                 <SelectContent>
                   {drivers.map(d => (
@@ -95,14 +95,23 @@ export function AdminExpenseForm({ drivers, trips }: { drivers: any[], trips: an
               <Label>Viaje Asociado <span className="text-destructive">*</span></Label>
               <Select value={tripId} onValueChange={setTripId} disabled={!driverId || availableTrips.length === 0}>
                 <SelectTrigger className="bg-background/50">
-                  <SelectValue placeholder={!driverId ? "Selecciona un chofer primero" : availableTrips.length === 0 ? "No hay viajes" : "Seleccionar viaje..."} />
+                  {tripId 
+                    ? (() => {
+                        const t = availableTrips.find(x => x.id === tripId);
+                        return t ? `${t.trip_code || 'S/C'} | ${t.origin} a ${t.destination}` : "Seleccionar viaje...";
+                      })()
+                    : <span className="text-muted-foreground">{!driverId ? "Selecciona un chofer primero" : availableTrips.length === 0 ? "No hay viajes" : "Seleccionar viaje..."}</span>
+                  }
                 </SelectTrigger>
                 <SelectContent>
-                  {availableTrips.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.trip_code || 'S/C'} | {t.origin} a {t.destination}
-                    </SelectItem>
-                  ))}
+                  {availableTrips.map(t => {
+                    const labelText = `${t.trip_code || 'S/C'} | ${t.origin} a ${t.destination}`;
+                    return (
+                      <SelectItem key={t.id} value={t.id}>
+                        {labelText}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

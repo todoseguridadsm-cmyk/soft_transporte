@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Truck, Wrench, CheckCircle, Clock, AlertTriangle, AlertCircle } from 'lucide-react'
 import { OdometerForm } from './OdometerForm'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { EditVehicleForm } from '@/components/vehicles/EditVehicleForm'
+import { ServiceForm } from '@/components/vehicles/ServiceForm'
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -125,6 +127,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           </h2>
           <p className="text-muted-foreground font-medium mt-1">{vehicle.brand} {vehicle.model} ({vehicle.year}) - Capacidad: {vehicle.capacity_kg ? `${vehicle.capacity_kg} kg` : 'N/A'}</p>
         </div>
+        <EditVehicleForm vehicle={vehicle} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -173,6 +176,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             <Wrench className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg font-bold text-foreground/90">Historial de Gastos Mecánicos</CardTitle>
           </div>
+          <ServiceForm vehicle={vehicle} />
         </CardHeader>
         <CardContent className="p-0">
           <Table>
