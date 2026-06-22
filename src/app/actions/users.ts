@@ -78,16 +78,16 @@ export async function deleteUser(userId: string) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Remove from auth (will cascade or trigger to profiles? By default, we might have to manually delete profile if cascade isn't set, but usually we just delete auth user)
+  // Si no hay cascade configurado en Supabase, borrar el auth user primero falla por la FK.
+  // Así que primero borramos el perfil.
+  await supabase.from('profiles').delete().eq('id', userId)
+
   const { error } = await supabase.auth.admin.deleteUser(userId)
   
   if (error) {
     console.error('Delete error:', error)
-    return { error: 'No se pudo eliminar el usuario.' }
+    return { error: 'No se pudo eliminar el usuario de autenticación.' }
   }
-
-  // Si no hay cascade:
-  await supabase.from('profiles').delete().eq('id', userId)
 
   revalidatePath('/dashboard/users')
   return { success: true }
