@@ -36,7 +36,15 @@ export async function createUser(formData: FormData) {
 
   if (authError || !authData.user) {
     console.error('Auth error:', authError)
-    return { error: 'Error al crear la cuenta. Puede que el correo ya exista.' }
+    
+    let userMsg = 'Error al crear la cuenta. Puede que el correo ya exista.'
+    if (authError?.message?.includes('Password should be at least')) {
+      userMsg = 'La contraseña debe tener al menos 6 caracteres.'
+    } else if (authError?.message) {
+      userMsg = `Error: ${authError.message}`
+    }
+
+    return { error: userMsg }
   }
 
   // 2. Update profile with role and permissions
