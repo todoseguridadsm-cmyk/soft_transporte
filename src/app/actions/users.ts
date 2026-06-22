@@ -32,6 +32,11 @@ export async function createUser(formData: FormData) {
     email,
     password,
     email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
+      username: username,
+      role: role
+    }
   })
 
   if (authError || !authData.user) {
