@@ -15,7 +15,7 @@ export function SessionTimeout() {
         } catch (error) {
           // Next.js redirect throws an error internally, this is expected
         }
-      }, 10 * 60 * 1000) // 10 minutos
+      }, 7 * 60 * 1000) // 7 minutos
     }
 
     const events = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart']
