@@ -18,6 +18,19 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
   const [supplierId, setSupplierId] = useState('')
   const [amount, setAmount] = useState('')
   const [baseSalary, setBaseSalary] = useState('')
+  const [ivaRate, setIvaRate] = useState('0.21')
+  const [internalTaxes, setInternalTaxes] = useState('')
+
+  const isTaxable = category && category !== 'sueldo' && category !== 'ajuste_saldo'
+
+  // Dynamic calculations
+  const numAmount = parseFloat(amount) || 0
+  const numInternalTaxes = parseFloat(internalTaxes) || 0
+  const numIvaRate = parseFloat(ivaRate)
+  
+  const netTotal = Math.max(0, numAmount - numInternalTaxes)
+  const subtotal = netTotal / (1 + numIvaRate)
+  const ivaAmount = netTotal - subtotal
 
   const handleCalculateSalary = () => {
     const driver = drivers.find(d => d.id === driverId)
@@ -41,6 +54,18 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
     if (supplierId) formData.append('supplier_id', supplierId)
     formData.append('amount', amount) // append the controlled amount
 
+    if (isTaxable) {
+      const userNotes = formData.get('description') as string
+      const notesObj = {
+        text: userNotes,
+        iva_rate: numIvaRate,
+        subtotal: subtotal,
+        iva_amount: ivaAmount,
+        internal_taxes: numInternalTaxes
+      }
+      formData.set('description', JSON.stringify(notesObj))
+    }
+
     const result = await addCompanyExpense(formData)
     
     setLoading(false)
@@ -54,6 +79,7 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
       setSupplierId('')
       setAmount('')
       setBaseSalary('')
+      setInternalTaxes('')
     }
   }
 
@@ -94,10 +120,48 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="amount" className="text-foreground/80 font-semibold">Monto Neto a Pagar ($) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="amount" className="text-foreground/80 font-semibold">Monto Total a Pagar ($) <span className="text-destructive">*</span></Label>
               <Input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} type="number" step="0.01" placeholder="0.00" required className="bg-background/50 h-11 font-bold text-emerald-500 text-lg" />
             </div>
           </div>
+
+          {isTaxable && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <Label className="text-foreground/80 font-semibold">Tipo de IVA <span className="text-destructive">*</span></Label>
+                <Select value={ivaRate} onValueChange={setIvaRate} required>
+                  <SelectTrigger className="bg-background/50 h-11">
+                    <SelectValue placeholder="IVA" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.21">IVA 21%</SelectItem>
+                    <SelectItem value="0.105">IVA 10.5%</SelectItem>
+                    <SelectItem value="0">Exento (0%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="internal_taxes" className="text-foreground/80 font-semibold">Imp. Internos ($)</Label>
+                <Input id="internal_taxes" value={internalTaxes} onChange={(e) => setInternalTaxes(e.target.value)} type="number" step="0.01" placeholder="0.00" className="bg-background/50 h-11" />
+              </div>
+              
+              <div className="col-span-2 bg-muted/30 rounded-lg p-3 border border-border/50 flex justify-between text-sm">
+                <div className="flex flex-col">
+                  <span className="text-muted-foreground font-semibold">Subtotal Neto</span>
+                  <span className="font-bold text-foreground/80">${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex flex-col text-center">
+                  <span className="text-muted-foreground font-semibold">IVA ({numIvaRate * 100}%)</span>
+                  <span className="font-bold text-foreground/80">${ivaAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex flex-col text-right">
+                  <span className="text-muted-foreground font-semibold">Impuestos Int.</span>
+                  <span className="font-bold text-foreground/80">${numInternalTaxes.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <Label htmlFor="description" className="flex items-center gap-2 text-foreground/80 font-semibold"><FileText className="h-4 w-4" /> Descripción</Label>

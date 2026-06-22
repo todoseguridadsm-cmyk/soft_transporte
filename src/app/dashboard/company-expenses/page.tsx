@@ -45,17 +45,41 @@ export default async function CompanyExpensesPage(props: { searchParams: Promise
   const { data: drivers } = await supabase.from('profiles').select('id, full_name, balance').eq('role', 'chofer')
 
   const mergedExpenses = [
-    ...(expenses || []).map(e => ({
-       id: e.id,
-       date: e.created_at,
-       type: 'company_expense',
-       category: e.category,
-       description: e.description,
-       supplier: e.suppliers?.company_name || null,
-       driver: e.profiles?.full_name || null,
-       payment_method: e.payment_method,
-       amount: e.amount
-    })),
+    ...(expenses || []).map(e => {
+       let desc = e.description
+       let subtotal = e.amount
+       let ivaRate = 0
+       let ivaAmount = 0
+       let internalTaxes = 0
+       try {
+         if (desc && desc.startsWith('{')) {
+           const obj = JSON.parse(desc)
+           if (obj.text !== undefined) {
+             desc = obj.text
+             subtotal = obj.subtotal
+             ivaRate = obj.iva_rate
+             ivaAmount = obj.iva_amount
+             internalTaxes = obj.internal_taxes
+           }
+         }
+       } catch (err) {}
+       
+       return {
+         id: e.id,
+         date: e.created_at,
+         type: 'company_expense',
+         category: e.category,
+         description: desc,
+         supplier: e.suppliers?.company_name || null,
+         driver: e.profiles?.full_name || null,
+         payment_method: e.payment_method,
+         amount: e.amount,
+         subtotal,
+         ivaRate,
+         ivaAmount,
+         internalTaxes
+       }
+    }),
     ...(driverExpenses || []).map(e => ({
        id: e.id,
        date: e.created_at,
@@ -65,7 +89,11 @@ export default async function CompanyExpensesPage(props: { searchParams: Promise
        supplier: e.ocr_data?.proveedor || null,
        driver: e.profiles?.full_name || null,
        payment_method: 'Saldado (Chofer)',
-       amount: e.amount
+       amount: e.amount,
+       subtotal: e.amount,
+       ivaRate: 0,
+       ivaAmount: 0,
+       internalTaxes: 0
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -78,7 +106,11 @@ export default async function CompanyExpensesPage(props: { searchParams: Promise
     Proveedor: exp.supplier || '-',
     Chofer: exp.driver || '-',
     'Forma de Pago': exp.payment_method.replace('_', ' ').toUpperCase(),
-    Monto: exp.amount
+    'Subtotal Neto': exp.subtotal,
+    'Tasa IVA (%)': exp.ivaRate * 100,
+    'Monto IVA': exp.ivaAmount,
+    'Imp. Internos': exp.internalTaxes,
+    'Monto Total': exp.amount
   }))
 
   return (
