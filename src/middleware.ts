@@ -64,19 +64,37 @@ export async function middleware(request: NextRequest) {
       const restrictedRoutes = [
         { route: '/dashboard/trips', id: 'trips' },
         { route: '/dashboard/expenses', id: 'expenses' },
+        { route: '/dashboard/sales', id: 'sales' },
+        { route: '/dashboard/company-expenses', id: 'company_expenses' },
+        { route: '/dashboard/checks', id: 'checks' },
         { route: '/dashboard/clients', id: 'clients' },
+        { route: '/dashboard/suppliers', id: 'suppliers' },
         { route: '/dashboard/drivers', id: 'drivers' },
         { route: '/dashboard/vehicles', id: 'vehicles' },
-        { route: '/dashboard/invoices', id: 'invoices' },
+        { route: '/dashboard/company', id: 'company' },
+        { route: '/dashboard/partners-wallet', id: 'partners' },
         { route: '/dashboard/users', id: 'users' }, // only admin
       ]
+
+      // Si intenta acceder a /dashboard exactamente y no tiene permiso 'home', lo redirigimos a su primer permiso válido
+      if (path === '/dashboard' && !permissions.includes('home')) {
+        const url = request.nextUrl.clone()
+        const firstPerm = permissions[0]
+        if (firstPerm) {
+          const matchingRoute = restrictedRoutes.find(r => r.id === firstPerm)
+          url.pathname = matchingRoute ? matchingRoute.route : '/dashboard/trips'
+        } else {
+          url.pathname = '/login'
+        }
+        return NextResponse.redirect(url)
+      }
 
       for (const res of restrictedRoutes) {
         if (path.startsWith(res.route)) {
           if (res.id === 'users' || !permissions.includes(res.id)) {
             // No tiene permiso
             const url = request.nextUrl.clone()
-            url.pathname = '/dashboard' // redirect to home dashboard
+            url.pathname = permissions.includes('home') ? '/dashboard' : (permissions.length > 0 ? restrictedRoutes.find(r => r.id === permissions[0])?.route || '/login' : '/login')
             return NextResponse.redirect(url)
           }
         }

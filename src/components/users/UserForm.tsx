@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createUser } from '@/app/actions/users'
 
 const PERMISSIONS = [
+  { id: 'home', label: 'Inicio (Command Center)' },
   { id: 'trips', label: 'Viajes' },
   { id: 'expenses', label: 'Carga de Tickets' },
   { id: 'sales', label: 'Ventas y Cobros' },

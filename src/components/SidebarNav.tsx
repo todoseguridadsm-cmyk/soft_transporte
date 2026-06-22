@@ -53,7 +53,7 @@ export function SidebarNav({ isAdmin, permissions, role = 'admin' }: { isAdmin: 
 
   // Group links by their 'group' property
   const groupedLinks = links.reduce((acc, link) => {
-    if (link.id !== 'home' && !hasAccess(link.id)) return acc
+    if (!hasAccess(link.id)) return acc
     if (!acc[link.group]) acc[link.group] = []
     acc[link.group].push(link)
     return acc
