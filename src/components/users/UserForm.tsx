@@ -18,6 +18,11 @@ const PERMISSIONS = [
   { id: 'suppliers', label: 'Proveedores' },
   { id: 'drivers', label: 'Choferes' },
   { id: 'vehicles', label: 'Flota' },
+  { id: 'company', label: 'Mi Empresa' },
+  { id: 'partners', label: 'Caja Socios' },
+  { id: 'afip', label: 'Facturación AFIP' },
+  { id: 'gps', label: 'Track GPS' },
+  { id: 'ai', label: 'Agente de IA' },
   { id: 'alerts', label: 'Alertas' },
 ]
 

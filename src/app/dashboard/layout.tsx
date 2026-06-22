@@ -15,12 +15,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   
   let role = 'empleado'
   let permissions: string[] = []
+  let fullName = ''
   
   if (user) {
-    const { data: profile } = await supabase.from('profiles').select('role, permissions').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('role, permissions, full_name').eq('id', user.id).single()
     if (profile) {
       role = profile.role
       permissions = profile.permissions || []
+      fullName = profile.full_name || ''
     }
   }
 
@@ -60,8 +62,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         {/* Header */}
         <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b border-border/50 bg-background/60 px-6 backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <div className="text-sm font-medium text-foreground/80 bg-muted/50 px-3 py-1.5 rounded-full border border-border/50">
-              Administrador
+            <div className="flex flex-col items-end mr-2">
+              <span className="text-sm font-bold text-foreground/90">Hola, {fullName || 'Usuario'}</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{role === 'admin' ? 'Administrador' : role}</span>
             </div>
             <form action={logout}>
               <Button type="submit" variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
