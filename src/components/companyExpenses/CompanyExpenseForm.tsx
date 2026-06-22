@@ -16,6 +16,19 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
   const [paymentMethod, setPaymentMethod] = useState('')
   const [driverId, setDriverId] = useState('')
   const [supplierId, setSupplierId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [baseSalary, setBaseSalary] = useState('')
+
+  const handleCalculateSalary = () => {
+    const driver = drivers.find(d => d.id === driverId)
+    if (driver && baseSalary) {
+      // Saldo > 0 significa que el chofer tiene dinero de la empresa (Adelantos > Gastos) -> Se descuenta del sueldo
+      // Saldo < 0 significa que la empresa le debe al chofer (Gastos > Adelantos) -> Se suma al sueldo
+      const balanceToDeduct = Number(driver.balance || 0)
+      const netToPay = Number(baseSalary) - balanceToDeduct
+      setAmount(netToPay.toString())
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -26,6 +39,7 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
     formData.append('payment_method', paymentMethod)
     if (driverId) formData.append('driver_id', driverId)
     if (supplierId) formData.append('supplier_id', supplierId)
+    formData.append('amount', amount) // append the controlled amount
 
     const result = await addCompanyExpense(formData)
     
@@ -38,6 +52,8 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
       setPaymentMethod('')
       setDriverId('')
       setSupplierId('')
+      setAmount('')
+      setBaseSalary('')
     }
   }
 
@@ -78,8 +94,8 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="amount" className="text-foreground/80 font-semibold">Monto ($) <span className="text-destructive">*</span></Label>
-              <Input id="amount" name="amount" type="number" step="0.01" placeholder="0.00" required className="bg-background/50 h-11 font-bold text-emerald-500 text-lg" />
+              <Label htmlFor="amount" className="text-foreground/80 font-semibold">Monto Neto a Pagar ($) <span className="text-destructive">*</span></Label>
+              <Input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} type="number" step="0.01" placeholder="0.00" required className="bg-background/50 h-11 font-bold text-emerald-500 text-lg" />
             </div>
           </div>
 
@@ -105,24 +121,44 @@ export function CompanyExpenseForm({ suppliers, drivers }: { suppliers: any[], d
           )}
 
           {(category === 'sueldo' || category === 'ajuste_saldo') && (
-            <div className="space-y-3 p-4 bg-primary/5 border border-primary/10 rounded-lg">
-              <Label className="text-foreground/80 font-semibold">Chofer a depositar/ajustar</Label>
-              <Select value={driverId} onValueChange={setDriverId} required>
-                <SelectTrigger className="bg-background/50 h-11">
-                  {driverId ? (() => {
-                    const d = drivers.find(x => x.id === driverId);
-                    return d ? `${d.full_name} (Saldo: $${d.balance || 0})` : "Selecciona un chofer"
-                  })() : <span className="text-muted-foreground">Selecciona un chofer</span>}
-                </SelectTrigger>
-                <SelectContent>
-                  {drivers.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.full_name} (Saldo: ${d.balance || 0})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-2">
-                Al registrar un sueldo o ajuste, el monto sumará al balance personal del chofer para compensar saldos negativos.
-              </p>
+            <div className="space-y-4 p-4 bg-primary/5 border border-primary/10 rounded-lg">
+              <div className="space-y-3">
+                <Label className="text-foreground/80 font-semibold">Chofer a liquidar</Label>
+                <Select value={driverId} onValueChange={setDriverId} required>
+                  <SelectTrigger className="bg-background/50 h-11">
+                    {driverId ? (() => {
+                      const d = drivers.find(x => x.id === driverId);
+                      return d ? `${d.full_name} (Saldo: $${d.balance || 0})` : "Selecciona un chofer"
+                    })() : <span className="text-muted-foreground">Selecciona un chofer</span>}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {drivers.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.full_name} (Saldo: ${d.balance || 0})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {driverId && category === 'sueldo' && (
+                <div className="space-y-3 pt-2 border-t border-primary/10">
+                  <Label className="text-xs text-foreground/80 font-bold uppercase tracking-wider text-primary">Calculadora de Sueldo</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="number" 
+                      placeholder="Sueldo Base (Ej. 1500000)" 
+                      value={baseSalary} 
+                      onChange={(e) => setBaseSalary(e.target.value)}
+                      className="bg-background h-10"
+                    />
+                    <Button type="button" variant="secondary" onClick={handleCalculateSalary} className="h-10 shrink-0">
+                      Calcular y Aplicar
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    El sistema tomará el Sueldo Base y le restará automáticamente el saldo actual del chofer (o lo sumará si le debemos dinero de sus gastos en ruta).
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

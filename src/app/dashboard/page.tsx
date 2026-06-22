@@ -47,6 +47,7 @@ export default async function DashboardPage() {
 
   const { data: allTrips } = await supabase.from('trips').select('id, origin, destination, price, status')
   const { data: allExpenses } = await supabase.from('expenses').select('trip_id, amount, status')
+  const { data: allSales } = await supabase.from('sales').select('trip_id, amount')
   const { data: vehicles } = await supabase.from('vehicles').select('id, plate, current_km, next_service_km, status')
   
   // Calculate KPIs
@@ -56,7 +57,11 @@ export default async function DashboardPage() {
   completedTrips.forEach(t => {
      const tripExpenses = allExpenses?.filter(e => e.trip_id === t.id && e.status === 'approved') || []
      const cost = tripExpenses.reduce((acc, e) => acc + e.amount, 0)
-     rentabilidadTotal += ((t.price || 0) - cost)
+     
+     const tripSales = allSales?.filter(s => s.trip_id === t.id) || []
+     const income = tripSales.reduce((acc, s) => acc + (s.amount || 0), 0)
+     
+     rentabilidadTotal += (income - cost)
   })
   const rentabilidadPromedio = completedTrips.length > 0 ? (rentabilidadTotal / completedTrips.length) : 0
 
