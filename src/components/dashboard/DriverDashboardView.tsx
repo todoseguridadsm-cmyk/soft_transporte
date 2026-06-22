@@ -15,8 +15,7 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
       vehicles(plate, next_service_km, current_km)
     `)
     .eq('driver_id', userId)
-    .in('status', ['pending', 'in_progress'])
-    .order('start_date', { ascending: true })
+    .order('start_date', { ascending: false })
     .limit(1)
   
   const currentTrip = trips && trips.length > 0 ? trips[0] : null
@@ -81,9 +80,11 @@ export async function DriverDashboardView({ userId, fullName }: { userId: string
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                  currentTrip.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-700 text-gray-300'
+                  currentTrip.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 
+                  currentTrip.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                  'bg-gray-700 text-gray-300'
                 }`}>
-                  {currentTrip.status === 'in_progress' ? 'En Ruta' : 'Pendiente'}
+                  {currentTrip.status === 'in_progress' ? 'En Ruta' : currentTrip.status === 'completed' ? 'Finalizado' : 'A Confirmar'}
                 </span>
                 {vehicle && <span className="text-xs font-mono bg-black/30 px-2 py-1 rounded text-gray-400 border border-gray-700">{vehicle.plate}</span>}
               </div>

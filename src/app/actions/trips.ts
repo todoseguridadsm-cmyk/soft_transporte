@@ -161,6 +161,7 @@ export async function approveAndCompleteTrip(tripId: string) {
 
   revalidatePath('/dashboard/trips')
   revalidatePath('/dashboard/expenses')
+  revalidatePath('/dashboard/sales')
   return { success: true }
 }
 

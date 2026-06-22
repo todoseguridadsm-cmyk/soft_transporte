@@ -5,6 +5,7 @@ import { Truck, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { DeleteTripButton } from '@/components/trips/DeleteTripButton'
+import { ApproveTripButton } from '@/components/trips/ApproveTripButton'
 
 export default async function TripsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
@@ -45,7 +46,7 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
       clients ( company_name ),
       vehicles ( plate ),
       profiles!trips_driver_id_fkey ( full_name ),
-      expenses ( id, status )
+      expenses ( id, status, amount )
     `)
     .order('created_at', { ascending: false })
 
@@ -134,13 +135,18 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
                 <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
                 <TableHead className="font-semibold text-muted-foreground">Chofer</TableHead>
                 <TableHead className="font-semibold text-muted-foreground">Estado</TableHead>
-                <TableHead className="text-right font-semibold text-muted-foreground">Precio / Adelanto</TableHead>
+                <TableHead className="text-right font-semibold text-muted-foreground">Económico</TableHead>
                 <TableHead className="text-right font-semibold text-muted-foreground">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {trips && trips.length > 0 ? (
-                trips.map((trip) => (
+                trips.map((trip) => {
+                  const expensesList = (trip.expenses as any[]) || [];
+                  const pendingTickets = expensesList.filter(e => e.status === 'pending').length;
+                  const totalGastos = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+                  return (
                   <TableRow key={trip.id} className="border-border/40 hover:bg-muted/30 transition-colors group">
                     <TableCell className="font-medium text-foreground/90">
                       <div className="flex flex-col">
@@ -167,11 +173,16 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-bold">
-                      <div className="flex flex-col items-end">
-                        <span className="text-emerald-500">${trip.price?.toLocaleString() || '0.00'}</span>
+                      <div className="flex flex-col items-end gap-1">
+                        {!isChofer && <span className="text-emerald-500 text-sm">Venta: ${trip.price?.toLocaleString() || '0.00'}</span>}
                         {trip.advance_payment ? (
-                          <span className="text-xs text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full mt-1">
+                          <span className="text-xs text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full">
                             Adelanto: ${trip.advance_payment.toLocaleString()}
+                          </span>
+                        ) : null}
+                        {totalGastos > 0 ? (
+                          <span className="text-xs text-red-400 font-medium bg-red-500/10 px-2 py-0.5 rounded-full mt-0.5">
+                            Gastos Rind.: ${totalGastos.toLocaleString()}
                           </span>
                         ) : null}
                       </div>
@@ -182,18 +193,9 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
                         {!isChofer && trip.status === 'pending' && (
                           <div className="flex items-center gap-2">
                             {(() => {
-                               const pendingTickets = (trip.expenses as any[])?.filter(e => e.status === 'pending').length || 0;
                                const canClose = pendingTickets === 0;
                                return canClose ? (
-                                 <form action={async () => {
-                                   'use server'
-                                   const { approveAndCompleteTrip } = await import('@/app/actions/trips')
-                                   await approveAndCompleteTrip(trip.id)
-                                 }}>
-                                   <Button variant="default" size="sm" className="h-8 bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold">
-                                     Cerrar Definitivo
-                                   </Button>
-                                 </form>
+                                 <ApproveTripButton tripId={trip.id} />
                                ) : (
                                  <div className="flex items-center gap-2">
                                    <span className="text-xs text-destructive font-bold">{pendingTickets} Tickets sin auditar</span>
@@ -218,7 +220,7 @@ export default async function TripsPage(props: { searchParams: Promise<{ [key: s
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               ) : (
                 <TableRow className="border-border/40 hover:bg-transparent">
                   <TableCell colSpan={5} className="text-center h-32 text-muted-foreground/80 font-medium">
