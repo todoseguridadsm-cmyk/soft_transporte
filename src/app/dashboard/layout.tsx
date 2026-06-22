@@ -8,6 +8,7 @@ import { SessionTimeout } from '@/components/SessionTimeout'
 
 import { SidebarNav } from '@/components/SidebarNav'
 import { MobileBottomNav } from '@/components/MobileBottomNav'
+import { getAlertsCount } from '@/lib/alerts'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
@@ -28,6 +29,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   const isAdmin = role === 'admin'
   const isChofer = role === 'chofer'
+
+  let alertsCount = 0
+  if (isAdmin || permissions.includes('alerts')) {
+    alertsCount = await getAlertsCount(supabase)
+  }
 
   // Si es chofer, renderizamos un layout puramente móvil y oscuro
   if (isChofer) {
@@ -53,7 +59,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <span className="text-xl font-bold tracking-tight text-foreground/90">Senda CMR</span>
         </div>
         <div className="flex-1 overflow-y-auto pb-4">
-          <SidebarNav isAdmin={isAdmin} permissions={permissions} />
+          <SidebarNav isAdmin={isAdmin} permissions={permissions} alertsCount={alertsCount} />
         </div>
       </aside>
 

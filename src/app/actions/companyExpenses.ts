@@ -74,11 +74,15 @@ export async function addCompanyExpense(formData: FormData) {
     const { data: driver } = await supabase.from('profiles').select('balance').eq('id', driver_id).single()
     const currentBalance = driver?.balance || 0
     
-    // Sueldo: asume que le pagamos, así que si tenía saldo negativo (deuda) esto lo compensa, o si el saldo es positivo se le da la plata. 
-    // Para simplificar: el pago de sueldo es un ingreso para el chofer, así que SUMA a su balance si queremos reflejar que le dimos plata, o RESTA si la empresa le está cancelando una deuda?
-    // Si la empresa le paga sueldo en efectivo, el chofer recibe dinero. Si el chofer tenía DEUDA (-1000) por adelantos, al pagarle el sueldo (ej. 1000) en realidad se lo descontamos de la deuda.
-    // Vamos a sumar el monto del sueldo al balance para compensar saldos negativos.
-    await supabase.from('profiles').update({ balance: currentBalance + amount }).eq('id', driver_id)
+    if (category === 'sueldo') {
+      // Al liquidar sueldo, se asume que el saldo pendiente se ha compensado en el pago. 
+      // El balance queda en 0.
+      await supabase.from('profiles').update({ balance: 0 }).eq('id', driver_id)
+    } else if (category === 'ajuste_saldo') {
+      // Si es un ajuste (adelanto, compensación manual), sumamos/restamos el monto al balance.
+      // Egresos y sueldos = plata que sale de la empresa. Si se le da al chofer, es un aumento de su saldo (adelanto).
+      await supabase.from('profiles').update({ balance: currentBalance + amount }).eq('id', driver_id)
+    }
   }
 
   revalidatePath('/dashboard/company-expenses')

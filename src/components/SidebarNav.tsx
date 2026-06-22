@@ -23,7 +23,7 @@ import {
   Banknote
 } from 'lucide-react'
 
-export function SidebarNav({ isAdmin, permissions, role = 'admin' }: { isAdmin: boolean, permissions: string[], role?: 'admin' | 'secretaria' }) {
+export function SidebarNav({ isAdmin, permissions, role = 'admin', alertsCount = 0 }: { isAdmin: boolean, permissions: string[], role?: 'admin' | 'secretaria', alertsCount?: number }) {
   const pathname = usePathname()
   
   const hasAccess = (module: string) => isAdmin || permissions.includes(module)
@@ -77,6 +77,7 @@ export function SidebarNav({ isAdmin, permissions, role = 'admin' }: { isAdmin: 
               : pathname.startsWith(link.href)
 
             const Icon = link.icon
+            const isAlert = link.id === 'alerts' && alertsCount > 0
 
             return (
               <Link 
@@ -89,7 +90,12 @@ export function SidebarNav({ isAdmin, permissions, role = 'admin' }: { isAdmin: 
                 }`}
               >
                 <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
-                <span>{link.label}</span>
+                <span className="flex-1">{link.label}</span>
+                {isAlert && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white shadow-sm shadow-destructive/50">
+                    {alertsCount > 9 ? '+9' : alertsCount}
+                  </span>
+                )}
               </Link>
             )
           })}
