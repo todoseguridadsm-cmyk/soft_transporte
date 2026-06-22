@@ -191,3 +191,25 @@ export async function addMaintenanceLog(formData: FormData) {
   revalidatePath('/dashboard/vehicles')
   return { success: true }
 }
+
+export async function deleteMaintenanceLogForm(formData: FormData) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const id = formData.get('id') as string
+  const vehicle_id = formData.get('vehicle_id') as string
+
+  if (!id || !vehicle_id) return { error: 'ID requerido.' }
+
+  const { error } = await supabase.from('maintenance_logs').delete().eq('id', id)
+
+  if (error) {
+    console.error('Error delete maintenance log:', error)
+    return { error: 'Error al eliminar el service.' }
+  }
+
+  revalidatePath(`/dashboard/vehicles/${vehicle_id}`)
+  return { success: true }
+}

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Loader2, Edit, Truck, Wrench } from 'lucide-react'
 
-export function EditVehicleForm({ vehicle }: { vehicle: any }) {
+export function EditVehicleForm({ vehicle, trigger }: { vehicle: any, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,9 +31,11 @@ export function EditVehicleForm({ vehicle }: { vehicle: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 shadow-lg transition-all border-primary/50 hover:bg-primary/10">
-          <Edit className="h-4 w-4 text-primary" /> Editar Camión
-        </Button>
+        {trigger ? trigger : (
+          <Button variant="outline" className="gap-2 shadow-lg transition-all border-primary/50 hover:bg-primary/10">
+            <Edit className="h-4 w-4 text-primary" /> Editar Camión
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl">
         <DialogHeader>

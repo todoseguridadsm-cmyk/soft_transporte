@@ -6,6 +6,7 @@ import { OdometerForm } from './OdometerForm'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { EditVehicleForm } from '@/components/vehicles/EditVehicleForm'
 import { ServiceForm } from '@/components/vehicles/ServiceForm'
+import { DeleteServiceButton } from '@/components/vehicles/DeleteServiceButton'
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -198,7 +199,10 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                     <TableCell className="font-semibold">{log.service_type}</TableCell>
                     <TableCell className="text-muted-foreground font-mono">{log.km_at_service?.toLocaleString()} km</TableCell>
                     <TableCell className="text-right font-bold text-foreground/90">
-                      ${log.cost?.toLocaleString() || '0.00'}
+                      <div className="flex items-center justify-end gap-2">
+                        <span>${log.cost?.toLocaleString() || '0.00'}</span>
+                        <DeleteServiceButton id={log.id} vehicleId={vehicle.id} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

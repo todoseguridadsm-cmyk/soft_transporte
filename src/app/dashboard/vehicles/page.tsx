@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Truck } from 'lucide-react'
+import { Truck, Edit } from 'lucide-react'
 import Link from 'next/link'
 import { VehicleForm } from '@/components/vehicles/VehicleForm'
 import { Button } from '@/components/ui/button'
 import { DeleteVehicleButton } from '@/components/vehicles/DeleteVehicleButton'
+import { EditVehicleForm } from '@/components/vehicles/EditVehicleForm'
+
 export default async function VehiclesPage() {
   const supabase = await createClient()
 
@@ -65,6 +67,14 @@ export default async function VehiclesPage() {
                         <Link href={`/dashboard/vehicles/${vehicle.id}`}>
                           <Button variant="secondary" size="sm" className="h-8">Ver Ficha</Button>
                         </Link>
+                        <EditVehicleForm 
+                          vehicle={vehicle} 
+                          trigger={
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Editar">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          } 
+                        />
                         <DeleteVehicleButton id={vehicle.id} />
                       </div>
                     </TableCell>
