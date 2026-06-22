@@ -13,6 +13,7 @@ export default async function UsersPage() {
     .from('profiles')
     .select('*')
     .in('role', ['admin', 'empleado'])
+    .neq('username', 'Transporte2026')
     .order('created_at', { ascending: false })
 
   return (
