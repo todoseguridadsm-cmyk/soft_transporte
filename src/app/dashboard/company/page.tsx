@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Building2, Users, Save, UserPlus } from 'lucide-react'
 import { updateCompanySettings, createPartner } from '@/app/actions/company'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { CompanySettingsForm } from '@/components/company/CompanySettingsForm'
 
 export default async function CompanyPage() {
   const supabase = await createClient()
@@ -36,44 +37,7 @@ export default async function CompanyPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <form action={updateCompanySettings} className="space-y-4">
-              <input type="hidden" name="id" value={company?.id || ''} />
-              
-              <div className="space-y-2">
-                <Label>Razón Social <span className="text-destructive">*</span></Label>
-                <Input name="company_name" required defaultValue={company?.company_name || ''} placeholder="Ej: Transportes del Sur S.R.L." className="bg-background/50" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Nombre de Fantasía</Label>
-                <Input name="fantasy_name" defaultValue={company?.fantasy_name || ''} placeholder="Ej: Transur" className="bg-background/50" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>CUIT</Label>
-                  <Input name="cuit" defaultValue={company?.cuit || ''} placeholder="Ej: 30-12345678-9" className="bg-background/50" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Teléfono</Label>
-                  <Input name="phone" defaultValue={company?.phone || ''} placeholder="Ej: +54 9 11 1234-5678" className="bg-background/50" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Dirección Fiscal</Label>
-                <Input name="address" defaultValue={company?.address || ''} placeholder="Ej: Av. Siempreviva 742, CABA" className="bg-background/50" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" name="email" defaultValue={company?.email || ''} placeholder="Ej: administracion@transur.com" className="bg-background/50" />
-              </div>
-
-              <Button type="submit" className="w-full gap-2 mt-4">
-                <Save className="h-4 w-4" /> Guardar Datos
-              </Button>
-            </form>
+            <CompanySettingsForm company={company} />
           </CardContent>
         </Card>
 
